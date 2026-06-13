@@ -8,7 +8,7 @@ const envSchema = z.object({
   // Auth
   JWT_SECRET:     z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRY:     z.string().default('7d'),
-  ALLOWED_EMAILS: z.string().min(1, 'ALLOWED_EMAILS is required'),
+  ALLOWED_EMAILS: z.string().default(''),
 
   // App
   PORT:         z.string().default('4000').transform(Number),
@@ -43,5 +43,7 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 
-export const getAllowedEmails = (): string[] =>
-  env.ALLOWED_EMAILS.split(',').map((e) => e.trim().toLowerCase());
+export const getAllowedEmails = (): string[] => {
+  if (!env.ALLOWED_EMAILS) return [];
+  return env.ALLOWED_EMAILS.split(',').map((e) => e.trim().toLowerCase());
+};

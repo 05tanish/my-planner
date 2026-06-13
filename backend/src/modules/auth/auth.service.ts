@@ -20,7 +20,7 @@ export const register = async (
   const email = dto.email.toLowerCase().trim();
   const allowedEmails = getAllowedEmails();
 
-  if (!allowedEmails.includes(email)) {
+  if (allowedEmails.length > 0 && !allowedEmails.includes('*') && !allowedEmails.includes(email)) {
     throw new AppError('Registration is invite-only. This email is not whitelisted.', 403);
   }
 
