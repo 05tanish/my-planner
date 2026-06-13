@@ -14,9 +14,10 @@ const startServer = async () => {
     // Start background jobs scheduler
     initScheduler();
 
-    // Start listening
-    const server = app.listen(env.PORT, '0.0.0.0', () => {
-      console.log(`🚀 DevOS Backend running in ${env.NODE_ENV} mode on port ${env.PORT}`);
+    // Start listening — use process.env.PORT directly so Railway's injected value always wins
+    const PORT = parseInt(process.env.PORT || '8080', 10);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 DevOS Backend running in ${env.NODE_ENV} mode on port ${PORT}`);
     });
 
     // Graceful shutdown handling
