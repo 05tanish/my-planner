@@ -11,7 +11,7 @@ const envSchema = z.object({
   ALLOWED_EMAILS: z.string().default(''),
 
   // App
-  PORT:         z.string().default('4000').transform(Number),
+  PORT:         z.string().default('8080').transform(Number),
   NODE_ENV:     z.enum(['development', 'production', 'test']).default('development'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
 
