@@ -511,7 +511,7 @@ export function DashboardPage() {
           rowHeight={38}
           isDraggable={isEditing}
           isResizable={isEditing}
-          onLayoutChange={handleLayoutChange}
+          onLayoutChange={handleLayoutChange as any}
           margin={[16, 16]}
           containerPadding={[0, 0]}
         >
