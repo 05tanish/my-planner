@@ -2,12 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '../config/env';
 import fs from 'fs';
 import path from 'path';
-import ws from 'ws';
+
+// Provide ws as global WebSocket for Node.js < 22 compatibility with Supabase
+if (typeof globalThis.WebSocket === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  globalThis.WebSocket = require('ws') as unknown as typeof WebSocket;
+}
 
 const supabase = env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY
-  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
-      realtime: { transport: ws as unknown as typeof WebSocket },
-    })
+  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY)
   : null;
 
 if (supabase) {
