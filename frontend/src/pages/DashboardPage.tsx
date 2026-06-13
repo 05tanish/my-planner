@@ -336,7 +336,7 @@ export function DashboardPage() {
     loadDashboard();
   }, []);
 
-  const handleLayoutChange = (newLayout: LayoutItem[]) => {
+  const handleLayoutChange = (newLayout: any) => {
     setLayout(newLayout);
   };
 

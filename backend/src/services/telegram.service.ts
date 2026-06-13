@@ -211,7 +211,7 @@ function setupBotListeners() {
         if (!tasks.length) {
           text += `🎉 No pending tasks! You're all caught up.`;
         } else {
-          tasks.forEach((t, i) => {
+          tasks.forEach((t: any, i: number) => {
             text += `${i + 1}. ${priorityIcon[t.priority] || '⚪'} <b>${t.title}</b>\n`;
             if (t.category) text += `   <i>${t.category}</i>\n`;
           });
@@ -241,7 +241,7 @@ function setupBotListeners() {
         text += `📌 <b>Revisions Due:</b> ${revisions.length}\n\n`;
         if (revisions.length) {
           text += `<b>Due Today:</b>\n`;
-          revisions.slice(0, 8).forEach((r, i) => {
+          revisions.slice(0, 8).forEach((r: any, i: number) => {
             text += `${i + 1}. ${diff[r.problem.difficulty] || '⚪'} <b>${r.problem.name}</b> <i>(${r.problem.platform})</i>\n`;
           });
           if (revisions.length > 8) text += `... and ${revisions.length - 8} more\n`;
@@ -688,7 +688,7 @@ function setupBotListeners() {
             return;
           }
           let list = `📝 <b>Pending Tasks (${tasks.length})</b>\n${divider()}\n\n`;
-          tasks.forEach((t, i) => { list += `${i + 1}. ${priorityIcon[t.priority] || '⚪'} <b>${t.title}</b>\n`; });
+          tasks.forEach((t: any, i: number) => { list += `${i + 1}. ${priorityIcon[t.priority] || '⚪'} <b>${t.title}</b>\n`; });
           list += `\n<i>/done &lt;n&gt; to complete</i>`;
           await bot!.sendMessage(chatId, list, { parse_mode: 'HTML' });
           return;
@@ -743,7 +743,7 @@ function setupBotListeners() {
           }
           const diff: Record<string, string> = { EASY: '🟢', MEDIUM: '🟡', HARD: '🔴' };
           let list = `📚 <b>DSA Due Today (${revisions.length})</b>\n${divider()}\n\n`;
-          revisions.forEach((r, i) => {
+          revisions.forEach((r: any, i: number) => {
             list += `${i + 1}. ${diff[r.problem.difficulty]} <b>${r.problem.name}</b> <i>(${r.problem.platform})</i>\n`;
           });
           await bot!.sendMessage(chatId, list, { parse_mode: 'HTML' });
@@ -809,8 +809,8 @@ function setupBotListeners() {
             await bot!.sendMessage(chatId, `📊 No GitHub activity in the last <b>${days}</b> days.`, { parse_mode: 'HTML' });
             return;
           }
-          const total = activities.reduce((s, a) => s + a.commits, 0);
-          const lines = activities.map(a =>
+          const total = activities.reduce((s: number, a: any) => s + a.commits, 0);
+          const lines = activities.map((a: any) =>
             `• <b>${format(new Date(a.date), 'EEE dd MMM')}</b> — ${a.commits} commit${a.commits !== 1 ? 's' : ''}`
           );
           await bot!.sendMessage(chatId,

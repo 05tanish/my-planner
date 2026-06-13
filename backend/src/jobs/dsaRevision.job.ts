@@ -33,9 +33,9 @@ export const runDsaRevisionJob = async () => {
 
       if (dueRevisions.length === 0) continue;
 
-      const problemNames = dueRevisions.map((rev) => rev.problem.name);
-      const problemsListText = problemNames.map((name) => `- ${name}`).join('\n');
-      const problemsListHtml = `<ul>${problemNames.map((name) => `<li>${name}</li>`).join('')}</ul>`;
+      const problemNames = dueRevisions.map((rev: any) => rev.problem.name);
+      const problemsListText = problemNames.map((name: string) => `- ${name}`).join('\n');
+      const problemsListHtml = `<ul>${problemNames.map((name: string) => `<li>${name}</li>`).join('')}</ul>`;
 
       console.log(`⏰ Found ${dueRevisions.length} due DSA revisions for user ${user.email}`);
 

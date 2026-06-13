@@ -94,7 +94,7 @@ export const generateSingleReport = async (userId: string, id: string) => {
   report += `**Type:** ${note.type}  \n`;
   report += `**Date:** ${new Date(note.createdAt).toLocaleDateString()}  \n`;
   if (note.tags && note.tags.length > 0) {
-    report += `**Tags:** ${note.tags.map(t => `\`#${t}\``).join(', ')}  \n`;
+    report += `**Tags:** ${note.tags.map((t: string) => `\`#${t}\``).join(', ')}  \n`;
   }
   if (note.fileUrl) {
     report += `**Attachment Link:** [Download File](${note.fileUrl})  \n`;
@@ -122,20 +122,20 @@ export const generateSectionReport = async (userId: string, section: string) => 
   }
 
   report += `## TABLE OF CONTENTS\n\n`;
-  notes.forEach((note, index) => {
+  notes.forEach((note: any, index: number) => {
     const anchor = note.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     report += `${index + 1}. [${note.title}](#${anchor}) (${note.type})\n`;
   });
 
   report += `\n---\n\n`;
 
-  notes.forEach((note) => {
+  notes.forEach((note: any) => {
     const anchor = note.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     report += `<a name="${anchor}"></a>\n`;
     report += `### ${note.title}\n\n`;
     report += `**Type:** ${note.type} | **Created:** ${new Date(note.createdAt).toLocaleDateString()}  \n`;
     if (note.tags && note.tags.length > 0) {
-      report += `**Tags:** ${note.tags.map(t => `\`#${t}\``).join(', ')}  \n`;
+      report += `**Tags:** ${note.tags.map((t: string) => `\`#${t}\``).join(', ')}  \n`;
     }
     if (note.fileUrl) {
       report += `**Attachment Link:** [Download File](${note.fileUrl})  \n`;

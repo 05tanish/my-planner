@@ -96,7 +96,7 @@ export const runHourlyReminderJob = async () => {
       if (pendingTasks.length === 0) {
         message += `• All tasks completed! 🎉\n`;
       } else {
-        pendingTasks.forEach(t => {
+        pendingTasks.forEach((t: any) => {
           message += `• [${t.priority}] ${t.title}\n`;
         });
         if (totalPendingTasksCount > 5) {
@@ -118,7 +118,7 @@ export const runHourlyReminderJob = async () => {
       if (dueRevisions.length === 0) {
         message += `• All caught up! 👍\n`;
       } else {
-        dueRevisions.forEach(rev => {
+        dueRevisions.forEach((rev: any) => {
           message += `• ${rev.problem.name} (${rev.problem.platform})\n`;
         });
         if (totalDueRevisionsCount > 5) {
