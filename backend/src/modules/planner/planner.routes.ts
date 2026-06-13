@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { authenticate } from '../../middleware/auth.middleware';
+import * as c from './planner.controller';
+const router = Router();
+router.use(authenticate);
+router.get('/today', c.todayTasks);
+router.get('/', c.list);
+router.post('/', c.create);
+router.patch('/:id', c.update);
+router.delete('/:id', c.remove);
+export default router;
