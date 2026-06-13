@@ -2,9 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '../config/env';
 import fs from 'fs';
 import path from 'path';
+import ws from 'ws';
 
 const supabase = env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY
-  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY)
+  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
+      realtime: { transport: ws as unknown as typeof WebSocket },
+    })
   : null;
 
 if (supabase) {
