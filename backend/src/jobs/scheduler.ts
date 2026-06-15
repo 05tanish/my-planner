@@ -3,6 +3,7 @@ import { runDsaRevisionJob } from './dsaRevision.job';
 import { runGithubReminderJob } from './githubReminder.job';
 import { runAnalyticsSnapshotJob } from './analyticsSnapshot.job';
 import { runHourlyReminderJob } from './hourlyReminder.job';
+import { startV2Jobs } from './v2Jobs';
 
 export const initScheduler = () => {
   console.log('⏰ Initializing background job scheduler...');
@@ -30,6 +31,9 @@ export const initScheduler = () => {
     console.log('⏰ Triggered Scheduled Task: Hourly Status Digest');
     await runHourlyReminderJob();
   });
+
+  // V2 Jobs - Alert scanner, AI mentor, weekly review
+  startV2Jobs();
 
   console.log('⏰ Background jobs scheduled successfully.');
 };
