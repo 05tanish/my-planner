@@ -2,7 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarCheck, Code2, FileText, GraduationCap,
   BookMarked, Target, Briefcase, Library, BarChart2,
-  Network, Settings, ChevronLeft, ChevronRight, LogOut, User
+  Network, Settings, ChevronLeft, ChevronRight, LogOut, User,
+  FolderKanban, MessageSquare, Flame, Radar, Trophy, Brain, Bell
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -24,6 +25,15 @@ const NAV = [
   { label: 'GitHub',          path: '/github',     Icon: Github },
   { label: 'Analytics',       path: '/analytics',  Icon: BarChart2 },
   { label: 'Knowledge Graph', path: '/graph',      Icon: Network },
+  { label: '—', path: 'divider-1', Icon: null, isDivider: true },
+  { label: 'Projects',        path: '/projects',      Icon: FolderKanban, isV2: true },
+  { label: 'Interviews',      path: '/interviews',    Icon: MessageSquare, isV2: true },
+  { label: 'Habits',          path: '/habits',        Icon: Flame, isV2: true },
+  { label: 'Opportunities',   path: '/opportunities', Icon: Radar, isV2: true },
+  { label: 'Hackathons',      path: '/hackathons',    Icon: Trophy, isV2: true },
+  { label: 'Knowledge Base',  path: '/knowledge',     Icon: Brain, isV2: true },
+  { label: 'Alerts',          path: '/alerts',        Icon: Bell, isV2: true },
+  { label: '—', path: 'divider-2', Icon: null, isDivider: true },
   { label: 'Settings',        path: '/settings',   Icon: Settings },
 ];
 
@@ -69,26 +79,46 @@ export function Sidebar() {
 
       {/* ── Nav Links ────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {NAV.map(({ label, path, Icon }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors group',
-                isActive
-                  ? 'bg-primary text-primary-foreground font-semibold'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-                sidebarCollapsed && 'justify-center px-2'
-              )
-            }
-            title={sidebarCollapsed ? label : undefined}
-          >
-            <Icon className="w-4 h-4 shrink-0" />
-            {!sidebarCollapsed && <span className="truncate text-[13px]">{label}</span>}
-          </NavLink>
-        ))}
+        {NAV.map(({ label, path, Icon, isDivider, isV2 }) => {
+          if (isDivider) {
+            return (
+              <div key={path} className="h-px bg-border my-2 mx-2" />
+            );
+          }
+
+          return (
+            <NavLink
+              key={path}
+              to={path}
+              end={path === '/'}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors group relative',
+                  isActive
+                    ? 'bg-primary text-primary-foreground font-semibold'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                  sidebarCollapsed && 'justify-center px-2'
+                )
+              }
+              title={sidebarCollapsed ? label : undefined}
+            >
+              {Icon && <Icon className="w-4 h-4 shrink-0" />}
+              {!sidebarCollapsed && (
+                <>
+                  <span className="truncate text-[13px]">{label}</span>
+                  {isV2 && (
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400 font-semibold">
+                      NEW
+                    </span>
+                  )}
+                </>
+              )}
+              {isV2 && sidebarCollapsed && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* ── Footer ───────────────────────────────────────────────── */}

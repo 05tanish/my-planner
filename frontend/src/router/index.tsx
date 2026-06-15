@@ -22,6 +22,14 @@ const GitHubPage      = lazy(() => import('../pages/GitHubPage').then(m => ({ de
 const AnalyticsPage   = lazy(() => import('../pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
 const GraphPage       = lazy(() => import('../pages/GraphPage').then(m => ({ default: m.GraphPage })));
 const SettingsPage    = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+// V2 Pages
+const ProjectsPage      = lazy(() => import('../pages/ProjectsPage'));
+const InterviewsPage    = lazy(() => import('../pages/InterviewsPage'));
+const HabitsPage        = lazy(() => import('../pages/HabitsPage'));
+const OpportunitiesPage = lazy(() => import('../pages/OpportunitiesPage'));
+const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
+const KnowledgePage     = lazy(() => import('../pages/KnowledgePage'));
+const AlertsPage        = lazy(() => import('../pages/AlertsPage'));
 
 function PageLoader() {
   return (
@@ -85,6 +93,28 @@ export function AppRouter() {
         } />
         <Route path="/settings" element={
           <Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>
+        } />
+        {/* V2 Routes */}
+        <Route path="/projects" element={
+          <Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense>
+        } />
+        <Route path="/interviews" element={
+          <Suspense fallback={<PageLoader />}><InterviewsPage /></Suspense>
+        } />
+        <Route path="/habits" element={
+          <Suspense fallback={<PageLoader />}><HabitsPage /></Suspense>
+        } />
+        <Route path="/opportunities" element={
+          <Suspense fallback={<PageLoader />}><OpportunitiesPage /></Suspense>
+        } />
+        <Route path="/hackathons" element={
+          <Suspense fallback={<PageLoader />}><HackathonsPage /></Suspense>
+        } />
+        <Route path="/knowledge" element={
+          <Suspense fallback={<PageLoader />}><KnowledgePage /></Suspense>
+        } />
+        <Route path="/alerts" element={
+          <Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>
         } />
       </Route>
     </Routes>
