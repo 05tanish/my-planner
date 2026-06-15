@@ -5,7 +5,7 @@ import { env } from '../config/env';
  * Integrates with OpenAI API for intelligent content generation
  */
 
-interface ResearchResult {
+export interface ResearchResult {
   beginnerExplanation: string;
   interviewNotes: string;
   productionNotes: string;
@@ -54,7 +54,7 @@ export const aiService = {
         throw new Error(`OpenAI API error: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       const content = data.choices[0]?.message?.content || '';
       
       return this.parseAIResponse(content, query);

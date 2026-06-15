@@ -190,22 +190,31 @@ function setupBotListeners() {
           `<b>📝 Tasks</b>\n` +
           `• /tasks — view pending tasks\n` +
           `• /task [title] — create task\n` +
+          `• /bulk — create multiple tasks\n` +
           `• /done [n] — mark task complete\n` +
-          `• /priority — urgent tasks\n\n` +
+          `• /priority — urgent tasks\n` +
+          `• /time [hours] — capacity check\n\n` +
           `<b>📚 DSA</b>\n` +
           `• /dsa — revisions due today\n` +
           `• /dsastatus — goal status\n` +
           `• /dsadone — toggle daily goal\n\n` +
           `<b>🐙 GitHub</b>\n` +
           `• /ghstatus — today's activity\n` +
-          `• /commit [n] — update count\n\n` +
+          `• /commit [n] — update count\n` +
+          `• /ghcommits [n] — last n days\n\n` +
           `<b>💼 Career</b>\n` +
           `• /apply [company] | [role]\n` +
-          `• /project [name] — create\n` +
-          `• /hackathon [name] — track\n\n` +
+          `• /project [name] — create project\n` +
+          `• /hackathon [name] — track event\n` +
+          `• /idea [description] — save idea\n\n` +
+          `<b>🧠 Learning</b>\n` +
+          `• /save [url] — capture knowledge\n` +
+          `• /openclaw [topic] — AI research\n\n` +
           `<b>📊 Dashboard</b>\n` +
           `• /stats — quick overview\n` +
+          `• /review — daily summary\n` +
           `• /alerts — view alerts\n` +
+          `• /remind [text] — set reminder\n` +
           `• /me — your profile\n\n` +
           `<b>🔗 Account</b>\n` +
           `• /link [6-digit-pin] — connect account`;
