@@ -1,170 +1,316 @@
-# DevOS - Personal Engineering Workspace & Planner
+<div align="center">
 
-> [!NOTE]
-> **Internal Personal Productivity Workspace**  
-> This is a custom-built, internal tool that I created for my personal use to organize, manage, and plan my daily engineering work. I use it to keep track of tasks, schedule DSA revision problems, maintain learning journals, log job applications, and run interactive command controls via my personal Telegram bot. Having used this locally for some time, this repository serves as my official backup template and deployment guide.
+# 🖥️ DevOS
 
-DevOS is a flat-dark styled personal developer cockpit designed to track tasks, organize notes, master Data Structures & Algorithms (DSA) through spaced repetition, read engineering books, track job applications, and sync with GitHub activities—all unified with a secure Telegram Bot integration.
+### Personal Engineering Workspace & Planner
+
+<p>
+  <img src="https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma" />
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Telegram-Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" />
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/status-personal%20tool-blueviolet?style=flat-square" />
+  <img src="https://img.shields.io/badge/license-private-red?style=flat-square" />
+  <img src="https://img.shields.io/badge/made%20with-%E2%98%95%20coffee-brown?style=flat-square" />
+</p>
+
+<br />
+
+> *A flat-dark developer cockpit that unifies task management, DSA revision,*
+> *book reading, job tracking, and GitHub activity — all remote-controlled via Telegram.*
+
+<br />
 
 ---
 
-## 🚀 Key Features
+</div>
 
-*   **Integrated Developer Dashboard**: Custom grid layout detailing productivity logs, DSA stats, tasks, job application pipelines, and GitHub activity feeds.
-*   **Robust Imported Notes Parser**: Parse exported HTML notes (e.g. from Notion) with support for tags, links, nested formats, code blocks, lists, and images.
-*   **DSA Practice Tracker**: Revision scheduling based on spaced repetition (Days 1, 3, 7, 15, 30, 60, 90), topic tagging, and live syncing for LeetCode/GeeksforGeeks profiles.
-*   **EPUB, PDF & TXT Reader**: Custom inline reader featuring paginated scrolling, keyword search, and reading progress retention.
-*   **Job Application Tracker**: Drag-and-drop or pipeline list tracker supporting Wishlist, Applied, Online Assessment (OA), Interview, Rejected, and Offer states.
-*   **Secure Telegram Bot Integration**:
-    *   **Secure Linking**: Generated 6-digit verification PINs to associate chats safely.
-    *   **Interactive Menu**: Rich bot keyboard featuring inline actions.
-    *   **Conversational Flows**: Create tasks, notes, or log job updates using interactive multi-step prompts.
-    *   **System Controls**: `/dsadone`, `/dsastatus`, `/ghstatus`, `/ghcommits`, and `/me` commands.
-*   **Premium Flat Dark Design**: Built with high contrast charcoal/slate backgrounds (zinc palette), solid inputs, custom scrollbars, and fluid layout transitions—completely gradient/neon/glassmorphism free.
+## 📖 What is DevOS?
+
+**DevOS** is a custom-built, internal productivity platform designed around a software engineer's daily workflow. Instead of juggling five different apps for tasks, practice, reading, job hunting, and code activity — DevOS brings them all under one roof.
+
+Every feature was built from scratch to solve a real personal need. This repository is the official backup template and deployment reference guide.
+
+<br />
 
 ---
 
-## 📂 Project Architecture
+## ✨ Feature Highlights
+
+<br />
+
+### 🧭 &nbsp;Developer Dashboard
+A unified command center with a custom grid layout. See your productivity logs, DSA stats, active tasks, job pipeline status, and latest GitHub activity — all without switching tabs.
+
+<br />
+
+### 📝 &nbsp;Smart Notes Parser
+Import your exported HTML notes from tools like Notion. The parser handles nested formatting, inline code, code blocks, tags, hyperlinks, ordered/unordered lists, and embedded images without any manual cleanup.
+
+<br />
+
+### 🧠 &nbsp;DSA Practice Tracker
+Never forget a revision again. Schedules practice using a spaced repetition system across **Days 1 → 3 → 7 → 15 → 30 → 60 → 90**. Supports topic tagging, difficulty levels, and live profile syncing for LeetCode and GeeksforGeeks.
+
+<br />
+
+### 📚 &nbsp;Book Reader
+An inline reader for **EPUB, PDF, and TXT** formats. Features paginated scrolling, keyword search, and persistent reading progress that picks up exactly where you left off.
+
+<br />
+
+### 💼 &nbsp;Job Application Tracker
+A drag-and-drop pipeline tracker with six stages:
 
 ```
-personalplace/
-├── backend/            # Express.js & TypeScript API Server
-│   ├── prisma/         # Database schemas & migrations
-│   └── src/
-│       ├── controllers/
-│       ├── middleware/
-│       └── services/   # Telegram, Scraping, Notes Parsing Services
-├── frontend/           # React, Vite, Tailwind CSS, & Zustand Client
-│   └── src/
-│       ├── components/ # Custom components (Topbar, Sidebar, Reader)
-│       ├── pages/      # Dashboard, DSA, Books, Notes, Jobs, Settings
-│       └── stores/     # Client global states
-├── docker-compose.yml  # Docker environment setup
-└── package.json        # Workspace orchestrator script
+Wishlist  →  Applied  →  OA  →  Interview  →  Rejected  →  Offer
 ```
+
+<br />
+
+### 🤖 &nbsp;Telegram Bot
+Control your entire workspace from your phone. A secure 6-digit PIN links your Telegram account. Once linked, use interactive menus and conversational flows to manage tasks, notes, and job updates on the go.
+
+| Command | What it does |
+|:---|:---|
+| `/dsadone` | Mark today's DSA revision as complete |
+| `/dsastatus` | View your current revision schedule |
+| `/ghstatus` | See latest GitHub activity |
+| `/ghcommits` | Browse recent commits |
+| `/me` | Pull up your personal dashboard summary |
+
+<br />
+
+### 🎨 &nbsp;Premium Flat Dark UI
+Built with a high-contrast **charcoal/zinc** color palette. Solid input fields, custom scrollbars, and fluid layout transitions. Deliberately free of gradients, neon glows, and glassmorphism.
+
+<br />
 
 ---
 
-## 🛠️ Setup & Local Installation
+## 🏗️ Project Structure
+
+```
+devos/
+│
+├── backend/                        # Express.js + TypeScript REST API
+│   ├── prisma/
+│   │   ├── schema.prisma           # All database models
+│   │   └── migrations/             # Prisma migration history
+│   └── src/
+│       ├── controllers/            # Route handler logic
+│       ├── middleware/             # Auth, file uploads, error handling
+│       └── services/               # Telegram bot, scraper, notes parser
+│
+├── frontend/                       # React + Vite + Tailwind CSS + Zustand
+│   └── src/
+│       ├── components/             # Topbar, Sidebar, Reader, shared UI
+│       ├── pages/                  # Dashboard, DSA, Books, Notes, Jobs, Settings
+│       └── stores/                 # Global state (Zustand)
+│
+├── docker-compose.yml              # Production Docker stack
+├── docker-compose.dev.yml          # Development Docker stack
+└── package.json                    # Monorepo root orchestrator
+```
+
+<br />
+
+---
+
+## ⚡ Quick Start
 
 ### Prerequisites
-*   Node.js (v18+)
-*   npm or Yarn
-*   PostgreSQL Database instance (local or hosted e.g. Neon, Supabase)
 
-### 1. Environment Configuration
+Before you begin, make sure you have the following installed:
 
-Create a `.env` file in the **root** folder (you can base it off `.env.example`):
+- **Node.js** v18+
+- **npm** or **Yarn**
+- **PostgreSQL** — local or hosted ([Neon](https://neon.tech) / [Supabase](https://supabase.com))
+
+<br />
+
+### Step 1 — Clone
+
+```bash
+git clone https://github.com/your-username/devos.git
+cd devos
+```
+
+### Step 2 — Environment Setup
+
+Create a `.env` file in the **root directory**:
 
 ```env
-# Database Settings
+# ─────────────────────────────────────────
+# Database
+# ─────────────────────────────────────────
 DATABASE_URL="postgresql://user:password@localhost:5432/devos?schema=public"
 DIRECT_URL="postgresql://user:password@localhost:5432/devos?schema=public"
 
-# Auth Secret
-JWT_SECRET="YOUR_RANDOM_LONG_SECRET_KEY"
+# ─────────────────────────────────────────
+# Authentication
+# ─────────────────────────────────────────
+JWT_SECRET="your_super_long_random_secret_key"
 
+# ─────────────────────────────────────────
 # Telegram Bot
-TELEGRAM_BOT_TOKEN="YOUR_TELEGRAM_BOT_API_TOKEN"
+# ─────────────────────────────────────────
+TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
 
-# Optional Third-Party Services
-RESEND_API_KEY="re_..."
-EMAIL_FROM="DevOS Planner <noreply@yourdomain.com>"
+# ─────────────────────────────────────────
+# Email  (optional)
+# ─────────────────────────────────────────
+RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxx"
+EMAIL_FROM="DevOS <noreply@yourdomain.com>"
 ```
 
-### 2. Install Dependencies
+### Step 3 — Install Dependencies
 
-In the root folder, run:
 ```bash
 npm install
 ```
 
-### 3. Setup Database (Prisma)
+### Step 4 — Initialize Database
 
-Generate client and push schemas to your database:
 ```bash
 cd backend
 npx prisma generate
 npx prisma db push
 ```
 
-### 4. Running the App
+### Step 5 — Run
 
-To run both backend and frontend servers in development mode concurrently:
 ```bash
-# From the root directory
+# From root — starts backend + frontend concurrently
 npm run dev
 ```
 
-*   **Frontend Client**: [http://localhost:5173](http://localhost:5173)
-*   **Backend API**: [http://localhost:4000](http://localhost:4000)
+<br />
+
+| Service | Local URL |
+|:---|:---|
+| 🌐 Frontend | `http://localhost:5173` |
+| ⚙️ Backend API | `http://localhost:4000` |
+
+<br />
 
 ---
 
-## 🐳 Docker Deployment
+## 🐳 Docker
 
-To spin up the entire setup (database, backend, frontend, nginx) locally using Docker:
+Run the entire stack — PostgreSQL, backend, frontend, and Nginx — with a single command:
 
 ```bash
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
+<br />
+
 ---
 
-## ☁️ Real World Deployment Guide
+## ☁️ Deployment Guide
 
-### Database Hosting
-We recommend using serverless PostgreSQL providers like **Neon** or **Supabase** to obtain your `DATABASE_URL` and `DIRECT_URL`.
+### 🗄️ Database — Neon or Supabase
 
-### 1. Backend Deployment (Railway / Render)
+Provision a free serverless PostgreSQL instance and copy your `DATABASE_URL` and `DIRECT_URL` connection strings into your deployment environment.
 
-#### Deploying on Railway
-1. Sign in to [Railway.app](https://railway.app).
-2. Click **New Project** → **Deploy from GitHub repository**.
-3. Select your repository.
-4. Set the **Root Directory** to `backend`.
-5. Add the necessary Environment Variables:
-   * `DATABASE_URL`, `DIRECT_URL`
-   * `JWT_SECRET`
-   * `TELEGRAM_BOT_TOKEN`
-   * `PORT` (usually set automatically by Railway, typically `8080` or `4000`)
-6. In Settings, configure the **Start Command**:
+<br />
+
+### ⚙️ Backend — Railway
+
+1. Go to [Railway.app](https://railway.app) → **New Project** → **Deploy from GitHub**
+2. Set **Root Directory** → `backend`
+3. Add environment variables:
+
+   | Variable | Value |
+   |:---|:---|
+   | `DATABASE_URL` | PostgreSQL connection string |
+   | `DIRECT_URL` | Direct PostgreSQL connection string |
+   | `JWT_SECRET` | Long random secret |
+   | `TELEGRAM_BOT_TOKEN` | Your bot token |
+   | `PORT` | Auto-assigned by Railway |
+
+4. Set the **Start Command**:
    ```bash
    npx prisma db push && npm run build && npm start
    ```
 
----
+<br />
 
-### 2. Frontend Deployment (Vercel)
+### 🌐 Frontend — Vercel
 
-Vercel is the ideal option for hosting the React Vite static app.
+1. Go to [Vercel](https://vercel.com) → **Import Project** from GitHub
+2. Configure build settings:
 
-1. Go to [Vercel](https://vercel.com).
-2. Import your GitHub project.
-3. Configure the Project Settings:
-   * **Framework Preset**: `Vite`
-   * **Root Directory**: `frontend`
-   * **Build Command**: `npm run build`
-   * **Output Directory**: `dist`
-4. Add the Frontend Environment Variables:
-   * `VITE_API_URL`: Your deployed backend URL (e.g. `https://your-backend.up.railway.app`)
-5. Click **Deploy**.
+   | Setting | Value |
+   |:---|:---|
+   | Framework Preset | `Vite` |
+   | Root Directory | `frontend` |
+   | Build Command | `npm run build` |
+   | Output Directory | `dist` |
 
-#### Vercel Rewrite Configuration
-If using client-side React Router navigation, add a `vercel.json` inside the `frontend/` directory to prevent `404` errors on routing refreshes:
+3. Add environment variable:
+   - `VITE_API_URL` → your Railway backend URL
 
-```json
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
+4. Create `frontend/vercel.json` for SPA routing:
+   ```json
+   {
+     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+   }
+   ```
+
+<br />
 
 ---
 
-## 🔒 Security Best Practices
+## 🔐 Security Checklist
 
-1. **Telegram Webhooks**: In production, switch the Telegram bot polling to a secure webhook route for improved security and latency.
-2. **Helmet Protections**: Keep CSP headers enabled. Set `cors` rules restricted to your deployed frontend domain.
-3. **Upload File Scans**: Validate MIME types strictly in `upload.middleware.ts` to block executing scripts.
+| Area | Best Practice |
+|:---|:---|
+| 🤖 **Telegram** | Use HTTPS webhook in production instead of polling |
+| 🌐 **CORS** | Restrict allowed origins to your frontend domain only |
+| 🛡️ **Helmet** | Keep all CSP headers active — never disable in production |
+| 📁 **File Uploads** | Validate MIME types strictly in `upload.middleware.ts` |
+| 🔑 **Secrets** | Inject all secrets via environment variables — never commit `.env` |
+
+<br />
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|:---|:---|
+| **Frontend** | React 18, Vite, Tailwind CSS, Zustand |
+| **Backend** | Node.js, Express.js, TypeScript |
+| **Database** | PostgreSQL 15, Prisma ORM |
+| **Auth** | JSON Web Tokens (JWT) |
+| **Bot** | Telegram Bot API |
+| **Email** | Resend |
+| **DevOps** | Docker, Docker Compose, Nginx |
+
+<br />
+
+---
+
+## 📄 License
+
+This is a **private internal tool** built for personal use. Not intended for public distribution or commercial use.
+
+<br />
+
+---
+
+<div align="center">
+
+**DevOS** — because one tab should be enough.
+
+<sub>Built with ☕, TypeScript, and questionable sleep schedules.</sub>
+
+</div>
