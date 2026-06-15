@@ -49,6 +49,17 @@ model User {
   dashboardLayouts     DashboardLayout[]
   analyticsSnapshots   AnalyticsSnapshot[]
   productivityLogs     ProductivityLog[]
+  projects             Project[]
+  interviewQuestions   InterviewQuestion[]
+  githubStats          GitHubStats[]
+  knowledgeCaptures    KnowledgeCapture[]
+  youtubeVideos        YouTubeVideo[]
+  habitLogs            HabitLog[]
+  dailyAIMentorReports DailyAIMentorReport[]
+  weeklyReviews        WeeklyReview[]
+  opportunities        Opportunity[]
+  hackathons           Hackathon[]
+  alerts               Alert[]
 }
 
 model Session {
@@ -236,6 +247,7 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+  CRITICAL
 }
 
 enum TaskStatus {
@@ -252,23 +264,29 @@ enum TaskScope {
 }
 
 model Task {
-  id          String       @id @default(cuid())
-  userId      String
-  title       String
-  description String?
-  priority    TaskPriority @default(MEDIUM)
-  status      TaskStatus   @default(TODO)
-  scope       TaskScope    @default(DAILY)
-  category    String?      // DSA, Backend, DevOps, Blockchain, Placement, Personal, Project
-  dueDate     DateTime?
-  reminderAt  DateTime?
-  isRecurring Boolean      @default(false)
-  recurrRule  String?      // cron/rrule expression
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  userId        String
+  title         String
+  description   String?
+  priority      TaskPriority @default(MEDIUM)
+  status        TaskStatus   @default(TODO)
+  scope         TaskScope    @default(DAILY)
+  category      String?      // DSA, Backend, DevOps, Blockchain, Placement, Personal, Project, Learning
+  dueDate       DateTime?
+  reminderAt    DateTime?
+  isRecurring   Boolean      @default(false)
+  recurrRule    String?      // cron/rrule expression
+  estimatedTime Int?         // in minutes (Phase 5)
+  actualTime    Int?         // in minutes (Phase 5)
+  tags          String[]     // Phase 4
+  completedAt   DateTime?    // Track completion time
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([status])
+  @@index([dueDate])
 }
 
 // ─────────────────────────────────────────────
@@ -586,5 +604,470 @@ model DsaDailyGoal {
 
   @@unique([userId, date])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// PROJECT HUB (Phase 1)
+// ─────────────────────────────────────────────
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  IDEA
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Project {
+  id                    String          @id @default(cuid())
+  userId                String
+  name                  String
+  description           String?
+  status                ProjectStatus   @default(ACTIVE)
+  priority              ProjectPriority @default(MEDIUM)
+  startDate             DateTime?
+  endDate               DateTime?
+  githubUrl             String?
+  deploymentUrl         String?
+  documentationUrl      String?
+  blogUrl               String?
+  techStack             String[]
+  architectureNotes     String?
+  completionPercentage  Int             @default(0)
+  currentMilestone      String?
+  nextMilestone         String?
+  resumeBullets         String[]
+  interviewTalkingPoints String[]
+  challengesSolved      String[]
+  keyLearnings          String[]
+  commits               Int             @default(0)
+  codingHours           Float           @default(0)
+  deploymentCount       Int             @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  features              ProjectFeature[]
+  
+  @@index([userId])
+  @@index([status])
+}
+
+enum FeatureStatus {
+  COMPLETED
+  PENDING
+  FUTURE
+}
+
+model ProjectFeature {
+  id          String        @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  status      FeatureStatus @default(PENDING)
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+}
+
+// ─────────────────────────────────────────────
+// INTERVIEW VAULT (Phase 2)
+// ─────────────────────────────────────────────
+
+enum InterviewCategory {
+  BACKEND
+  DEVOPS
+  BLOCKCHAIN
+  HR
+  PROJECT_QUESTIONS
+}
+
+enum InterviewSubCategory {
+  // Backend
+  REST_APIS
+  AUTHENTICATION
+  JWT
+  OAUTH
+  DATABASE_DESIGN
+  SCALABILITY
+  CACHING
+  QUEUES
+  MICROSERVICES
+  
+  // DevOps
+  LINUX
+  DOCKER
+  KUBERNETES
+  CI_CD
+  NGINX
+  MONITORING
+  TERRAFORM
+  
+  // Blockchain
+  SMART_CONTRACTS
+  EVM
+  SOLIDITY
+  SECURITY
+  CONSENSUS
+  DEFI_CONCEPTS
+  
+  // HR
+  TELL_ME_ABOUT_YOURSELF
+  STRENGTHS
+  WEAKNESSES
+  CONFLICT_HANDLING
+  TEAMWORK
+  LEADERSHIP
+  
+  // Project
+  CHAT_APP
+  DEVOS
+  BLOCKCHAIN_PROJECTS
+  OTHER
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+model InterviewQuestion {
+  id              String              @id @default(cuid())
+  userId          String
+  category        InterviewCategory
+  subCategory     InterviewSubCategory?
+  question        String
+  shortAnswer     String?
+  detailedAnswer  String?
+  notes           String?
+  tags            String[]
+  difficulty      QuestionDifficulty  @default(MEDIUM)
+  revisionCount   Int                 @default(0)
+  lastRevisedAt   DateTime?
+  isFavorite      Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([category])
+}
+
+// ─────────────────────────────────────────────
+// BULK TASK MANAGEMENT (Phase 4)
+// ─────────────────────────────────────────────
+
+enum BulkTaskCategory {
+  DSA
+  BACKEND
+  DEVOPS
+  BLOCKCHAIN
+  PLACEMENT
+  PERSONAL
+  PROJECT
+  LEARNING
+}
+
+// Extended Task model to support bulk operations and time tracking
+// Note: Added fields to existing Task model via migration
+
+// ─────────────────────────────────────────────
+// GITHUB PRODUCTIVITY (Phase 6)
+// ─────────────────────────────────────────────
+
+model GitHubStats {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @db.Date
+  dailyCommits    Int      @default(0)
+  weeklyCommits   Int      @default(0)
+  monthlyCommits  Int      @default(0)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  repositories    String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// KNOWLEDGE CAPTURE (Phase 7)
+// ─────────────────────────────────────────────
+
+enum KnowledgeSourceType {
+  YOUTUBE
+  GITHUB_REPO
+  ARTICLE
+  BLOG
+  TWEET
+  DOCUMENTATION
+  OTHER
+}
+
+model KnowledgeCapture {
+  id              String              @id @default(cuid())
+  userId          String
+  sourceType      KnowledgeSourceType
+  sourceUrl       String
+  title           String
+  summary         String?
+  keyConcepts     String[]
+  notes           String?
+  tags            String[]
+  linkedDsaTopics DsaTopic[]
+  linkedProjects  String[]            // Project IDs
+  linkedQuestions String[]            // Interview Question IDs
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sourceType])
+}
+
+// ─────────────────────────────────────────────
+// YOUTUBE LEARNING TRACKER (Phase 9)
+// ─────────────────────────────────────────────
+
+enum VideoStatus {
+  WATCH_LATER
+  WATCHING
+  COMPLETED
+}
+
+model YouTubeVideo {
+  id                  String       @id @default(cuid())
+  userId              String
+  title               String
+  channel             String
+  url                 String
+  duration            Int?         // in seconds
+  status              VideoStatus  @default(WATCH_LATER)
+  keyConcepts         String[]
+  notes               String?
+  importantTimestamps Json?        // [{time: "2:30", note: "Key concept"}]
+  codeSnippets        String?
+  completionPercent   Int          @default(0)
+  revisionCount       Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// HABIT HEATMAP (Phase 10)
+// ─────────────────────────────────────────────
+
+enum HabitType {
+  DSA
+  CODING
+  READING
+  EXERCISE
+  JOB_APPLICATIONS
+  LEARNING
+  COMMITS
+}
+
+model HabitLog {
+  id          String     @id @default(cuid())
+  userId      String
+  date        DateTime   @db.Date
+  habitType   HabitType
+  completed   Boolean    @default(false)
+  count       Int        @default(0)  // for countable habits
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date, habitType])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// AI MENTOR (Phase 11)
+// ─────────────────────────────────────────────
+
+model DailyAIMentorReport {
+  id                String   @id @default(cuid())
+  userId            String
+  date              DateTime @db.Date
+  tasksCompleted    Int
+  dsaSolved         Int
+  codingHours       Float
+  commits           Int
+  applicationsSent  Int
+  achievements      String[]
+  weaknesses        String[]
+  missedGoals       String[]
+  tomorrowFocus     String[]
+  priorityTasks     String[]
+  aiAnalysis        String?
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// WEEKLY REVIEW (Phase 12)
+// ─────────────────────────────────────────────
+
+model WeeklyReview {
+  id                  String   @id @default(cuid())
+  userId              String
+  weekStartDate       DateTime @db.Date
+  weekEndDate         DateTime @db.Date
+  codingHours         Float
+  dsaCount            Int
+  projectsProgress    Json     // {projectId: progress%}
+  applicationsSent    Int
+  commits             Int
+  learningHours       Float
+  biggestWin          String?
+  biggestBottleneck   String?
+  improvementAreas    String[]
+  actionPlan          String[]
+  aiInsights          String?
+  createdAt           DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, weekStartDate])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// OPPORTUNITY RADAR (Phase 13)
+// ─────────────────────────────────────────────
+
+enum OpportunityCategory {
+  INTERNSHIP
+  HACKATHON
+  FELLOWSHIP
+  OPEN_SOURCE_PROGRAM
+  MENTORSHIP
+  CONFERENCE
+}
+
+enum OpportunityStatus {
+  DISCOVERED
+  INTERESTED
+  APPLIED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+model Opportunity {
+  id              String              @id @default(cuid())
+  userId          String
+  name            String
+  category        OpportunityCategory
+  organization    String?
+  description     String?
+  url             String?
+  deadline        DateTime?
+  status          OpportunityStatus   @default(DISCOVERED)
+  applicationStage String?
+  notes           String?
+  tags            String[]
+  reminderSet     Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([category])
+  @@index([deadline])
+}
+
+// ─────────────────────────────────────────────
+// HACKATHON HUB (Phase 14)
+// ─────────────────────────────────────────────
+
+enum HackathonStatus {
+  REGISTERED
+  BUILDING
+  SUBMITTED
+  RESULTS_AWAITED
+  WON
+  PARTICIPATED
+}
+
+model Hackathon {
+  id              String          @id @default(cuid())
+  userId          String
+  name            String
+  teamMembers     String[]
+  idea            String?
+  techStack       String[]
+  submissionLink  String?
+  githubUrl       String?
+  demoUrl         String?
+  deadline        DateTime?
+  status          HackathonStatus @default(REGISTERED)
+  prize           String?
+  learnings       String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// HIGH PRIORITY ALERTS (Phase 15)
+// ─────────────────────────────────────────────
+
+enum AlertLevel {
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum AlertType {
+  OVERDUE_TASK
+  HIGH_PRIORITY_TASK
+  DEADLINE_24H
+  UNFINISHED_WEEKLY_GOAL
+  MISSED_DSA_GOAL
+  NO_COMMITS_TODAY
+  NO_APPLICATIONS_THIS_WEEK
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  userId      String
+  type        AlertType
+  level       AlertLevel  @default(NORMAL)
+  title       String
+  message     String
+  actionUrl   String?
+  dismissed   Boolean     @default(false)
+  notified    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, dismissed])
+  @@index([level])
 }
 
