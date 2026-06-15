@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, ExternalLink, Link as LinkIcon, Brain, Youtube } from 'lucide-react';
+import { Plus, Search, ExternalLink, Link as LinkIcon, Brain, Video } from 'lucide-react';
 import { Github } from '@/components/ui/BrandIcons';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface Knowledge {
@@ -25,7 +24,7 @@ interface Knowledge {
 }
 
 const SOURCE_TYPES = [
-  { value: 'YOUTUBE', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
+  { value: 'YOUTUBE', label: 'YouTube', icon: Video, color: 'text-red-500' },
   { value: 'GITHUB_REPO', label: 'GitHub', icon: Github, color: 'text-purple-500' },
   { value: 'ARTICLE', label: 'Article', icon: LinkIcon, color: 'text-blue-500' },
   { value: 'BLOG', label: 'Blog', icon: LinkIcon, color: 'text-green-500' },

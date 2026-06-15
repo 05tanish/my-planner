@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, ExternalLink, Globe, FileText } from 'lucide-react';
+import { Plus, Search, Globe } from 'lucide-react';
 import { Github } from '@/components/ui/BrandIcons';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,6 @@ export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Form state

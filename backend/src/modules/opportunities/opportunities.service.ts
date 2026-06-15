@@ -3,6 +3,7 @@ import { processArray } from '../../utils/arrayHelper';
 
 const prisma = new PrismaClient();
 
+
 export const opportunityService = {
   async getAll(userId: string, filters?: {
     category?: OpportunityCategory;
@@ -12,7 +13,7 @@ export const opportunityService = {
     if (filters?.category) where.category = filters.category;
     if (filters?.status) where.status = filters.status;
 
-    return prisma.opportunity.findMany({
+    return prisma.Opportunity.findMany({
       where,
       orderBy: [
         { deadline: 'asc' },
@@ -22,7 +23,7 @@ export const opportunityService = {
   },
 
   async getOne(id: string, userId: string) {
-    return prisma.opportunity.findFirst({
+    return prisma.Opportunity.findFirst({
       where: { id, userId }
     });
   },

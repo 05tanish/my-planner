@@ -1,15 +1,3 @@
-import { User } from '@prisma/client';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-      };
-    }
-  }
-}
-
+// This file is intentionally empty
+// Type augmentation is now handled in auth.middleware.ts to avoid conflicts
 export {};

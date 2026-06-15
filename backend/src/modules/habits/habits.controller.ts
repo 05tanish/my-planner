@@ -5,13 +5,13 @@ export const habitController = {
   // POST /api/habits/log
   async logHabit(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { habitType, date, count } = req.body;
 
       const habit = await habitService.logHabit(
         userId,
         habitType,
-        date ? new Date(date) : new Date(),
+        date ? new Date(date as string) : new Date(),
         count || 1
       );
 
@@ -24,7 +24,7 @@ export const habitController = {
   // GET /api/habits?startDate=&endDate=&type=
   async getHabits(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { startDate, endDate, type } = req.query;
 
       const start = startDate ? new Date(startDate as string) : new Date();
@@ -46,7 +46,7 @@ export const habitController = {
   // GET /api/habits/heatmap/:habitType
   async getHeatmap(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { habitType } = req.params;
       const months = parseInt(req.query.months as string) || 6;
 
@@ -60,12 +60,12 @@ export const habitController = {
   // GET /api/habits/daily/:date
   async getDailyHabits(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { date } = req.params;
 
       const habits = await habitService.getDailyHabits(
         userId,
-        date ? new Date(date) : new Date()
+        date ? new Date(date as string) : new Date()
       );
 
       res.json(habits);
@@ -77,7 +77,7 @@ export const habitController = {
   // GET /api/habits/stats
   async getStats(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const stats = await habitService.getHabitStats(userId);
       res.json(stats);
     } catch (error: any) {
@@ -88,7 +88,7 @@ export const habitController = {
   // GET /api/habits/consistency/:habitType
   async getConsistency(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { habitType } = req.params;
       const days = parseInt(req.query.days as string) || 30;
 

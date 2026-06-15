@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { Request } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { sendError } from '../utils/response';
 import prisma from '../config/database';
@@ -9,6 +10,19 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
   };
+}
+
+// Augment Express Request to match AuthRequest
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        role: string;
+      };
+    }
+  }
 }
 
 export const authenticate = async (
