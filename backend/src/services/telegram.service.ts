@@ -190,36 +190,36 @@ function setupBotListeners() {
           `❓ <b>DevOS Bot — Command Reference</b>\n\n${divider()}\n\n` +
           `<b>📝 Tasks</b>\n` +
           `• /tasks — pending tasks\n` +
-          `• /task <title> — create task\n` +
-          `• /task priority:high <title>\n` +
+          `• /task [title] — create task\n` +
+          `• /task priority:high [title]\n` +
           `• /bulk — create multiple\n` +
-          `• /done <n> — complete task\n` +
+          `• /done [n] — complete task\n` +
           `• /priority — urgent tasks\n` +
-          `• /time <hours> — capacity\n\n` +
+          `• /time [hours] — capacity\n\n` +
           `<b>📚 DSA</b>\n` +
           `• /dsa — revisions due\n` +
           `• /dsastatus — goal status\n` +
           `• /dsadone — toggle goal\n\n` +
           `<b>🐙 GitHub</b>\n` +
           `• /ghstatus — today\n` +
-          `• /commit <n> — update\n` +
-          `• /ghcommits <n> — history\n\n` +
+          `• /commit [n] — update\n` +
+          `• /ghcommits [n] — history\n\n` +
           `<b>💼 Career</b>\n` +
-          `• /apply <co> | <role>\n` +
-          `• /project <name>\n` +
-          `• /hackathon <name>\n` +
-          `• /idea <text>\n\n` +
+          `• /apply [co] | [role]\n` +
+          `• /project [name]\n` +
+          `• /hackathon [name]\n` +
+          `• /idea [text]\n\n` +
           `<b>🧠 Learning</b>\n` +
-          `• /save <url> — capture\n` +
-          `• /openclaw <topic> — AI research\n\n` +
+          `• /save [url] — capture\n` +
+          `• /openclaw [topic] — AI research\n\n` +
           `<b>📊 Other</b>\n` +
           `• /stats — quick overview\n` +
           `• /alerts — view alerts\n` +
           `• /review — daily summary\n` +
-          `• /remind <text>\n` +
+          `• /remind [text]\n` +
           `• /me — profile\n\n` +
           `<b>🔗 Linking</b>\n` +
-          `• /link <6-digit-pin>`;
+          `• /link [6-digit-pin]`;
         await send(chatId, helpText, {
           reply_markup: {
             inline_keyboard: [[{ text: '← Back to Menu', callback_data: 'menu:main' }]]
