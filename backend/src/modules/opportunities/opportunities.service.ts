@@ -13,7 +13,7 @@ export const opportunityService = {
     if (filters?.category) where.category = filters.category;
     if (filters?.status) where.status = filters.status;
 
-    return prisma.Opportunity.findMany({
+    return prisma.opportunity.findMany({
       where,
       orderBy: [
         { deadline: 'asc' },
@@ -23,7 +23,7 @@ export const opportunityService = {
   },
 
   async getOne(id: string, userId: string) {
-    return prisma.Opportunity.findFirst({
+    return prisma.opportunity.findFirst({
       where: { id, userId }
     });
   },

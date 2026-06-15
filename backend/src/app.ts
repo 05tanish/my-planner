@@ -77,6 +77,9 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  // Allow PDFs to be embedded in iframes from any origin
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('Content-Security-Policy');
   next();
 }, express.static(uploadsPath));
 
