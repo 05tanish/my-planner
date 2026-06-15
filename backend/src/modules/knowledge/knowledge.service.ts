@@ -1,5 +1,6 @@
 import { PrismaClient, KnowledgeSourceType, DsaTopic } from '@prisma/client';
 import { processArray } from '../../utils/arrayHelper';
+import { aiService } from '../../services/ai.service';
 
 const prisma = new PrismaClient();
 
@@ -96,11 +97,13 @@ export const knowledgeService = {
     });
   },
 
-  // Research and process a topic
+  // Research and process a topic using AI
   async research(userId: string, query: string) {
-    // This is a simplified version - can be enhanced with actual web scraping/API calls
-    const summary = this.generateResearchSummary(query);
-    const keyConcepts = this.extractKeyConcepts(query);
+    // Use AI service for real research
+    const aiResearch = await aiService.researchTopic(query);
+    
+    const summary = aiResearch.beginnerExplanation;
+    const keyConcepts = aiResearch.keyConcepts;
     const tags = this.generateTags(query);
 
     const capture = await prisma.knowledgeCapture.create({
@@ -112,7 +115,7 @@ export const knowledgeService = {
         summary,
         keyConcepts,
         tags,
-        notes: 'Auto-generated research notes',
+        notes: 'AI-generated research notes',
         linkedDsaTopics: [],
         linkedProjects: [],
         linkedQuestions: []
@@ -121,12 +124,7 @@ export const knowledgeService = {
 
     return {
       capture,
-      researchData: {
-        beginnerExplanation: this.generateBeginnerExplanation(query),
-        interviewNotes: this.generateInterviewNotes(query),
-        productionNotes: this.generateProductionNotes(query),
-        resourceLinks: this.generateResourceLinks(query)
-      }
+      researchData: aiResearch
     };
   },
 

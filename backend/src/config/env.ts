@@ -31,6 +31,9 @@ const envSchema = z.object({
   // Upstash Redis (optional — used for rate limiting)
   UPSTASH_REDIS_REST_URL:   z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
+  // OpenAI (optional — used for AI research features)
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

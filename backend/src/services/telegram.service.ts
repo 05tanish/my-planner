@@ -88,18 +88,13 @@ function buildMainMenu(name: string) {
   return {
     text:
       `🤖 <b>DevOS Assistant</b> — Hey <b>${name}</b>! 👋\n\n` +
-      `<i>Your personal productivity bot. What do you want to do?</i>\n\n` +
+      `<i>Your personal productivity companion</i>\n\n` +
       `${divider()}\n` +
-      `📝 Tasks   📚 DSA   🐙 GitHub\n` +
-      `📓 Notes   💼 Jobs   📊 Stats`,
+      `Quick Actions:`,
     keyboard: {
       inline_keyboard: [
         [
           { text: '📝 My Tasks', callback_data: 'menu:tasks' },
-          { text: '📚 DSA Status', callback_data: 'menu:dsa' },
-        ],
-        [
-          { text: '🐙 GitHub Today', callback_data: 'menu:github' },
           { text: '📊 Dashboard', callback_data: 'menu:dashboard' },
         ],
         [
@@ -108,7 +103,11 @@ function buildMainMenu(name: string) {
         ],
         [
           { text: '💼 Log Job App', callback_data: 'menu:add_job' },
-          { text: '✅ DSA Done Today', callback_data: 'action:dsa_toggle' },
+          { text: '📚 DSA Done', callback_data: 'action:dsa_toggle' },
+        ],
+        [
+          { text: '🐙 GitHub', callback_data: 'menu:github' },
+          { text: '📖 Book', callback_data: 'menu:add_book' },
         ],
         [
           { text: '❓ Help & Commands', callback_data: 'menu:help' },
@@ -189,37 +188,27 @@ function setupBotListeners() {
         const helpText =
           `❓ <b>DevOS Bot — Command Reference</b>\n\n${divider()}\n\n` +
           `<b>📝 Tasks</b>\n` +
-          `• /tasks — pending tasks\n` +
+          `• /tasks — view pending tasks\n` +
           `• /task [title] — create task\n` +
-          `• /task priority:high [title]\n` +
-          `• /bulk — create multiple\n` +
-          `• /done [n] — complete task\n` +
-          `• /priority — urgent tasks\n` +
-          `• /time [hours] — capacity\n\n` +
+          `• /done [n] — mark task complete\n` +
+          `• /priority — urgent tasks\n\n` +
           `<b>📚 DSA</b>\n` +
-          `• /dsa — revisions due\n` +
+          `• /dsa — revisions due today\n` +
           `• /dsastatus — goal status\n` +
-          `• /dsadone — toggle goal\n\n` +
+          `• /dsadone — toggle daily goal\n\n` +
           `<b>🐙 GitHub</b>\n` +
-          `• /ghstatus — today\n` +
-          `• /commit [n] — update\n` +
-          `• /ghcommits [n] — history\n\n` +
+          `• /ghstatus — today's activity\n` +
+          `• /commit [n] — update count\n\n` +
           `<b>💼 Career</b>\n` +
-          `• /apply [co] | [role]\n` +
-          `• /project [name]\n` +
-          `• /hackathon [name]\n` +
-          `• /idea [text]\n\n` +
-          `<b>🧠 Learning</b>\n` +
-          `• /save [url] — capture\n` +
-          `• /openclaw [topic] — AI research\n\n` +
-          `<b>📊 Other</b>\n` +
+          `• /apply [company] | [role]\n` +
+          `• /project [name] — create\n` +
+          `• /hackathon [name] — track\n\n` +
+          `<b>📊 Dashboard</b>\n` +
           `• /stats — quick overview\n` +
           `• /alerts — view alerts\n` +
-          `• /review — daily summary\n` +
-          `• /remind [text]\n` +
-          `• /me — profile\n\n` +
-          `<b>🔗 Linking</b>\n` +
-          `• /link [6-digit-pin]`;
+          `• /me — your profile\n\n` +
+          `<b>🔗 Account</b>\n` +
+          `• /link [6-digit-pin] — connect account`;
         await send(chatId, helpText, {
           reply_markup: {
             inline_keyboard: [[{ text: '← Back to Menu', callback_data: 'menu:main' }]]
@@ -317,19 +306,30 @@ function setupBotListeners() {
       }
 
       if (data === 'menu:dashboard') {
-        const [tasksDue, tasksDone, dsaSolved, githubToday, activeJobs] = await Promise.all([
+        const [tasksPending, tasksDone, dsaTotal, dsaGoal, githubToday, activeJobs, activeProjects, booksReading, notesCount] = await Promise.all([
           prisma.task.count({ where: { userId, status: { in: ['TODO', 'IN_PROGRESS'] } } }),
-          prisma.task.count({ where: { userId, status: 'DONE', updatedAt: { gte: today } } }),
+          prisma.task.count({ where: { userId, status: 'DONE', completedAt: { gte: today } } }),
           prisma.dsaProblem.count({ where: { userId } }),
+          prisma.dsaDailyGoal.findUnique({ where: { userId_date: { userId, date: today } } }),
           prisma.githubActivity.findFirst({ where: { userId, date: today } }),
           prisma.job.count({ where: { userId, status: { in: ['APPLIED', 'OA', 'INTERVIEW'] } } }),
+          prisma.project.count({ where: { userId, status: 'ACTIVE' } }),
+          prisma.book.count({ where: { userId, readingStatus: 'READING' } }),
+          prisma.note.count({ where: { userId } }),
         ]);
         const text =
           `📊 <b>Dashboard Summary</b>\n${divider()}\n\n` +
-          `📝 Tasks pending: <b>${tasksDue}</b>  (✅ ${tasksDone} done today)\n` +
-          `🧠 DSA problems solved: <b>${dsaSolved}</b>\n` +
-          `🐙 GitHub commits today: <b>${githubToday?.commits || 0}</b>\n` +
-          `💼 Active job applications: <b>${activeJobs}</b>\n\n` +
+          `<b>📝 Today:</b>\n` +
+          `• Pending: ${tasksPending} tasks\n` +
+          `• Completed: ${tasksDone} tasks ✅\n` +
+          `• DSA Goal: ${dsaGoal?.completed ? 'Done ✅' : 'Pending ⏳'}\n` +
+          `• Commits: ${githubToday?.commits || 0} 🐙\n\n` +
+          `<b>📚 Overall:</b>\n` +
+          `• DSA Problems: ${dsaTotal}\n` +
+          `• Active Jobs: ${activeJobs} 💼\n` +
+          `• Projects: ${activeProjects} 📁\n` +
+          `• Books Reading: ${booksReading} 📖\n` +
+          `• Notes: ${notesCount} 📓\n\n` +
           `<i>${format(new Date(), 'EEEE, dd MMM yyyy')}</i>`;
         await send(chatId, text, {
           reply_markup: { inline_keyboard: [[{ text: '← Menu', callback_data: 'menu:main' }]] }
@@ -1303,10 +1303,14 @@ function setupBotListeners() {
           return;
         }
 
-        // /openclaw <query> - AI Research Assistant
+        // /openclaw <query> - AI Research Assistant (Uses OpenAI GPT)
         if (command === '/openclaw' || command === '/research') {
           if (!args) {
-            await bot!.sendMessage(chatId, `⚠️ Usage: <code>/openclaw redis pub/sub</code>`, { parse_mode: 'HTML' });
+            await bot!.sendMessage(chatId, 
+              `⚠️ Usage: <code>/openclaw redis pub/sub</code>\n\n` +
+              `<i>🤖 Powered by AI - add OPENAI_API_KEY to .env for full features</i>`, 
+              { parse_mode: 'HTML' }
+            );
             return;
           }
           
