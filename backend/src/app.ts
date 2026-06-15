@@ -24,6 +24,14 @@ import analyticsRouter from './modules/analytics/analytics.routes';
 import remindersRouter from './modules/reminders/reminders.routes';
 import dashboardRouter from './modules/dashboard/dashboard.routes';
 import usersRouter from './modules/users/users.routes';
+// V2 Routes
+import projectsRouter from './modules/projects/projects.routes';
+import interviewsRouter from './modules/interviews/interviews.routes';
+import habitsRouter from './modules/habits/habits.routes';
+import opportunitiesRouter from './modules/opportunities/opportunities.routes';
+import hackathonsRouter from './modules/hackathons/hackathons.routes';
+import alertsRouter from './modules/alerts/alerts.routes';
+import knowledgeRouter from './modules/knowledge/knowledge.routes';
 
 const app = express();
 
@@ -96,6 +104,14 @@ app.use('/api/github', githubRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/users', usersRouter);
+// V2 Routes
+app.use('/api/projects', projectsRouter);
+app.use('/api/interviews', interviewsRouter);
+app.use('/api/habits', habitsRouter);
+app.use('/api/opportunities', opportunitiesRouter);
+app.use('/api/hackathons', hackathonsRouter);
+app.use('/api/alerts', alertsRouter);
+app.use('/api/knowledge', knowledgeRouter);
 
 // Global Error Handler
 app.use(errorHandler);
