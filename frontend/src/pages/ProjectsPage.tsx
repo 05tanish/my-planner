@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Globe } from 'lucide-react';
+import { Plus, Search, Globe, Edit2, Trash2, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { Github } from '@/components/ui/BrandIcons';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -9,155 +9,184 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+interface Feature {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'COMPLETED' | 'PENDING' | 'FUTURE';
+  order: number;
+}
 
 interface Project {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   status: 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'IDEA';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   completionPercentage: number;
   techStack: string[];
   githubUrl?: string;
   deploymentUrl?: string;
+  notes?: string;
+  tags?: string[];
   features: Feature[];
   createdAt: string;
 }
 
-interface Feature {
-  id: string;
-  name: string;
-  status: 'COMPLETED' | 'PENDING' | 'FUTURE';
-}
+const STATUSES = ['ACTIVE', 'COMPLETED', 'ON_HOLD', 'IDEA'];
+const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+const statusColor: Record<string, string> = {
+  ACTIVE: 'bg-green-500', COMPLETED: 'bg-blue-500', ON_HOLD: 'bg-yellow-500', IDEA: 'bg-purple-500',
+};
+const priorityColor: Record<string, string> = {
+  CRITICAL: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-green-500',
+};
+
+const emptyForm = {
+  name: '', description: '', status: 'ACTIVE', priority: 'MEDIUM',
+  techStack: '', githubUrl: '', deploymentUrl: '', notes: '',
+};
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [filtered, setFiltered] = useState<Project[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    techStack: '',
-    githubUrl: '',
-    deploymentUrl: '',
-    documentationUrl: '',
-  });
+  // Dialogs
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  // Detail view
+  const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [featureInput, setFeatureInput] = useState('');
 
-  useEffect(() => {
-    filterProjects();
-  }, [projects, activeTab, searchQuery]);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => { fetchProjects(); fetchStats(); }, []);
+  useEffect(() => { applyFilter(); }, [projects, activeTab, search]);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/projects');
-      setProjects(response.data);
-    } catch (error) {
-      console.error('Failed to fetch projects:', error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await api.get('/projects');
+      setProjects(res.data);
+    } catch { toast.error('Failed to load projects'); }
+    finally { setLoading(false); }
   };
 
-  const filterProjects = () => {
-    let filtered = [...projects];
-
-    // Filter by status tab
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(p => p.status === activeTab.toUpperCase());
-    }
-
-    // Filter by search
-    if (searchQuery) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.techStack.some(tech => tech.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-
-    setFilteredProjects(filtered);
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchStats = async () => {
     try {
-      const payload = {
-        ...formData,
-        techStack: formData.techStack.split(',').map(s => s.trim()).filter(Boolean),
-      };
-      await api.post('/projects', payload);
-      setIsCreateOpen(false);
-      fetchProjects();
-      resetForm();
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    }
+      const res = await api.get('/projects/stats');
+      setStats(res.data);
+    } catch { /* silent */ }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      status: 'ACTIVE',
-      priority: 'MEDIUM',
-      techStack: '',
-      githubUrl: '',
-      deploymentUrl: '',
-      documentationUrl: '',
+  const applyFilter = () => {
+    let f = [...projects];
+    if (activeTab !== 'all') f = f.filter(p => p.status === activeTab.toUpperCase());
+    if (search) f = f.filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description?.toLowerCase().includes(search.toLowerCase()) ||
+      p.techStack.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    );
+    setFiltered(f);
+  };
+
+  const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setFormOpen(true); };
+  const openEdit = (p: Project) => {
+    setEditing(p);
+    setForm({
+      name: p.name, description: p.description || '', status: p.status,
+      priority: p.priority, techStack: p.techStack.join(', '),
+      githubUrl: p.githubUrl || '', deploymentUrl: p.deploymentUrl || '', notes: p.notes || '',
     });
+    setFormOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-500';
-      case 'COMPLETED': return 'bg-blue-500';
-      case 'ON_HOLD': return 'bg-yellow-500';
-      case 'IDEA': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = { ...form, techStack: form.techStack.split(',').map(s => s.trim()).filter(Boolean) };
+    try {
+      if (editing) {
+        await api.patch(`/projects/${editing.id}`, payload);
+        toast.success('Project updated');
+        if (detailProject?.id === editing.id) {
+          const res = await api.get(`/projects/${editing.id}`);
+          setDetailProject(res.data);
+        }
+      } else {
+        await api.post('/projects', payload);
+        toast.success('Project created');
+      }
+      setFormOpen(false);
+      fetchProjects();
+      fetchStats();
+    } catch { toast.error('Failed to save project'); }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'CRITICAL': return 'text-red-500';
-      case 'HIGH': return 'text-orange-500';
-      case 'MEDIUM': return 'text-yellow-500';
-      case 'LOW': return 'text-green-500';
-      default: return 'text-gray-500';
-    }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/projects/${deleteId}`);
+      toast.success('Project deleted');
+      if (detailProject?.id === deleteId) setDetailProject(null);
+      setDeleteId(null);
+      fetchProjects();
+      fetchStats();
+    } catch { toast.error('Failed to delete project'); }
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading projects...</div>;
-  }
+  const openDetail = async (p: Project) => {
+    const res = await api.get(`/projects/${p.id}`);
+    setDetailProject(res.data);
+  };
+
+  const addFeature = async () => {
+    if (!detailProject || !featureInput.trim()) return;
+    try {
+      await api.post(`/projects/${detailProject.id}/features`, { name: featureInput.trim() });
+      toast.success('Feature added');
+      setFeatureInput('');
+      const res = await api.get(`/projects/${detailProject.id}`);
+      setDetailProject(res.data);
+      fetchProjects();
+    } catch { toast.error('Failed to add feature'); }
+  };
+
+  const cycleFeature = async (feature: Feature) => {
+    if (!detailProject) return;
+    const next = feature.status === 'PENDING' ? 'COMPLETED' : feature.status === 'COMPLETED' ? 'FUTURE' : 'PENDING';
+    try {
+      await api.patch(`/projects/features/${feature.id}`, { status: next });
+      const res = await api.get(`/projects/${detailProject.id}`);
+      setDetailProject(res.data);
+      fetchProjects();
+    } catch { toast.error('Failed to update feature'); }
+  };
+
+  const deleteFeature = async (featureId: string) => {
+    if (!detailProject) return;
+    try {
+      await api.delete(`/projects/features/${featureId}`);
+      const res = await api.get(`/projects/${detailProject.id}`);
+      setDetailProject(res.data);
+      fetchProjects();
+    } catch { toast.error('Failed to delete feature'); }
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -165,120 +194,33 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Project Hub</h1>
-          <p className="text-muted-foreground">Manage your coding projects and track progress</p>
+          <p className="text-muted-foreground">Manage your coding projects</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Project
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
-              <DialogDescription>Add a new project to your hub</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateProject} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Project Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Chat Application"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Real-time chat app with WebSocket support"
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="COMPLETED">Completed</SelectItem>
-                      <SelectItem value="ON_HOLD">On Hold</SelectItem>
-                      <SelectItem value="IDEA">Idea</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Low</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="CRITICAL">Critical</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="techStack">Tech Stack (comma-separated)</Label>
-                <Input
-                  id="techStack"
-                  value={formData.techStack}
-                  onChange={(e) => setFormData({ ...formData, techStack: e.target.value })}
-                  placeholder="React, Node.js, Socket.io, Redis"
-                />
-              </div>
-              <div>
-                <Label htmlFor="githubUrl">GitHub URL</Label>
-                <Input
-                  id="githubUrl"
-                  value={formData.githubUrl}
-                  onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                  placeholder="https://github.com/username/repo"
-                />
-              </div>
-              <div>
-                <Label htmlFor="deploymentUrl">Deployment URL</Label>
-                <Input
-                  id="deploymentUrl"
-                  value={formData.deploymentUrl}
-                  onChange={(e) => setFormData({ ...formData, deploymentUrl: e.target.value })}
-                  placeholder="https://myapp.vercel.app"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Create Project</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />New Project</Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: 'Total', value: stats.total, color: '' },
+            { label: 'Active', value: stats.active, color: 'text-green-500' },
+            { label: 'Completed', value: stats.completed, color: 'text-blue-500' },
+            { label: 'On Hold', value: stats.onHold, color: 'text-yellow-500' },
+            { label: 'Ideas', value: stats.ideas, color: 'text-purple-500' },
+          ].map(s => (
+            <Card key={s.label}>
+              <CardHeader className="pb-1"><CardTitle className="text-sm">{s.label}</CardTitle></CardHeader>
+              <CardContent><div className={`text-2xl font-bold ${s.color}`}>{s.value}</div></CardContent>
+            </Card>
+          ))}
         </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       {/* Tabs */}
@@ -292,90 +234,70 @@ export default function ProjectsPage() {
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          {filteredProjects.length === 0 ? (
+          {filtered.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <p className="text-muted-foreground mb-4">No projects found</p>
-                <Button onClick={() => setIsCreateOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Project
-                </Button>
+                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Create Project</Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => (
-                <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+              {filtered.map(p => (
+                <Card
+                  key={p.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer group"
+                  onClick={() => openDetail(p)}
+                >
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{project.name}</CardTitle>
-                        <CardDescription className="line-clamp-2 mt-1">
-                          {project.description}
-                        </CardDescription>
+                        <CardTitle className="text-lg">{p.name}</CardTitle>
+                        {p.description && (
+                          <CardDescription className="line-clamp-2 mt-1">{p.description}</CardDescription>
+                        )}
                       </div>
-                      <Badge className={getStatusColor(project.status)} variant="secondary">
-                        {project.status}
-                      </Badge>
+                      <Badge className={statusColor[p.status]} variant="secondary">{p.status}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Progress */}
                     <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Progress</span>
-                        <span className="font-medium">{project.completionPercentage}%</span>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">{p.completionPercentage}%</span>
                       </div>
-                      <Progress value={project.completionPercentage} />
+                      <Progress value={p.completionPercentage} />
                     </div>
 
-                    {/* Tech Stack */}
-                    {project.techStack.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {project.techStack.slice(0, 3).map((tech, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {tech}
-                          </Badge>
+                    {p.techStack.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {p.techStack.slice(0, 4).map((t, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
                         ))}
-                        {project.techStack.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{project.techStack.length - 3}
-                          </Badge>
-                        )}
+                        {p.techStack.length > 4 && <Badge variant="outline" className="text-xs">+{p.techStack.length - 4}</Badge>}
                       </div>
                     )}
 
-                    {/* Features Summary */}
-                    {project.features.length > 0 && (
-                      <div className="text-sm text-muted-foreground">
-                        {project.features.filter(f => f.status === 'COMPLETED').length} / {project.features.length} features
-                      </div>
-                    )}
-
-                    {/* Links */}
-                    <div className="flex gap-2">
-                      {project.githubUrl && (
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                            <Github className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {project.deploymentUrl && (
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={project.deploymentUrl} target="_blank" rel="noopener noreferrer">
-                            <Globe className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Priority */}
                     <div className="flex items-center justify-between pt-2 border-t">
-                      <span className="text-xs text-muted-foreground">Priority</span>
-                      <span className={`text-xs font-medium ${getPriorityColor(project.priority)}`}>
-                        {project.priority}
-                      </span>
+                      <span className={`text-xs font-medium ${priorityColor[p.priority]}`}>{p.priority}</span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                        {p.githubUrl && (
+                          <a href={p.githubUrl} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><Github className="w-3 h-3" /></Button>
+                          </a>
+                        )}
+                        {p.deploymentUrl && (
+                          <a href={p.deploymentUrl} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><Globe className="w-3 h-3" /></Button>
+                          </a>
+                        )}
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(p)}>
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => setDeleteId(p.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -384,6 +306,213 @@ export default function ProjectsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit Project' : 'Create Project'}</DialogTitle>
+            <DialogDescription>Fill in the project details</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Name *</Label>
+              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="My awesome project" required />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} placeholder="What does this project do?" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Priority</Label>
+                <Select value={form.priority} onValueChange={v => setForm({ ...form, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Tech Stack (comma-separated)</Label>
+              <Input value={form.techStack} onChange={e => setForm({ ...form, techStack: e.target.value })} placeholder="React, Node.js, PostgreSQL" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>GitHub URL</Label>
+                <Input value={form.githubUrl} onChange={e => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/..." />
+              </div>
+              <div>
+                <Label>Deployment URL</Label>
+                <Input value={form.deploymentUrl} onChange={e => setForm({ ...form, deploymentUrl: e.target.value })} placeholder="https://myapp.vercel.app" />
+              </div>
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Additional notes..." />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+              <Button type="submit">{editing ? 'Save Changes' : 'Create'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Project?</DialogTitle>
+            <DialogDescription>This will permanently delete the project and all its features. This cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Detail Dialog */}
+      <Dialog open={!!detailProject} onOpenChange={() => setDetailProject(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {detailProject && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <DialogTitle className="text-xl">{detailProject.name}</DialogTitle>
+                    {detailProject.description && (
+                      <DialogDescription className="mt-1">{detailProject.description}</DialogDescription>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => { setDetailProject(null); openEdit(detailProject); }}>
+                      <Edit2 className="w-3 h-3 mr-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive border-destructive/50" onClick={() => { setDetailProject(null); setDeleteId(detailProject.id); }}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-5">
+                {/* Meta */}
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <Badge className={statusColor[detailProject.status]} variant="secondary">{detailProject.status}</Badge>
+                  <Badge variant="outline" className={priorityColor[detailProject.priority]}>{detailProject.priority}</Badge>
+                  <Badge variant="outline">{detailProject.completionPercentage}% complete</Badge>
+                </div>
+
+                {/* Progress */}
+                <Progress value={detailProject.completionPercentage} />
+
+                {/* Tech Stack */}
+                {detailProject.techStack.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Tech Stack</p>
+                    <div className="flex flex-wrap gap-2">
+                      {detailProject.techStack.map((t, i) => <Badge key={i} variant="outline">{t}</Badge>)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Links */}
+                {(detailProject.githubUrl || detailProject.deploymentUrl) && (
+                  <div className="flex gap-2">
+                    {detailProject.githubUrl && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={detailProject.githubUrl} target="_blank" rel="noopener noreferrer">
+                          <Github className="w-4 h-4 mr-1" /> GitHub
+                        </a>
+                      </Button>
+                    )}
+                    {detailProject.deploymentUrl && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={detailProject.deploymentUrl} target="_blank" rel="noopener noreferrer">
+                          <Globe className="w-4 h-4 mr-1" /> Live
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Features */}
+                <div>
+                  <p className="text-sm font-medium mb-3">
+                    Features ({detailProject.features.filter(f => f.status === 'COMPLETED').length}/{detailProject.features.length})
+                  </p>
+
+                  {/* Add feature */}
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      value={featureInput}
+                      onChange={e => setFeatureInput(e.target.value)}
+                      placeholder="Add a feature..."
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addFeature())}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={addFeature} disabled={!featureInput.trim()}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {detailProject.features.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-lg">No features yet</p>
+                    )}
+                    {detailProject.features.map(f => (
+                      <div key={f.id} className="flex items-center gap-3 p-2 rounded-lg border border-border group/feat">
+                        <button
+                          onClick={() => cycleFeature(f)}
+                          className="shrink-0 transition-colors"
+                          title="Click to cycle status"
+                        >
+                          {f.status === 'COMPLETED' ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          ) : f.status === 'FUTURE' ? (
+                            <Clock className="w-4 h-4 text-blue-400" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+                        <span className={`flex-1 text-sm ${f.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
+                          {f.name}
+                        </span>
+                        <Badge variant="outline" className="text-xs hidden group-hover/feat:flex">{f.status}</Badge>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/feat:opacity-100"
+                          onClick={() => deleteFeature(f.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {detailProject.notes && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Notes</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/40 p-3 rounded-lg">
+                      {detailProject.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

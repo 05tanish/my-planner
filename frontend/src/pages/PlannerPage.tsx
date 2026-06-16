@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   Plus, Search, Calendar, CheckCircle2, Circle,
-  Trash2, Edit2, Loader2, ArrowRight, ChevronLeft, ChevronRight
+  Trash2, Edit2, Loader2, ArrowRight, ChevronLeft, ChevronRight,
+  CalendarArrowUp
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Task, TaskPriority, TaskStatus, TaskScope } from '../types';
@@ -33,6 +34,9 @@ export function PlannerPage() {
   const [search, setSearch] = useState('');
   const [selectedScope, setSelectedScope] = useState<TaskScope | 'ALL'>('ALL');
   const [selectedPriority, setSelectedPriority] = useState<string>('');
+
+  // Multi-select for bulk operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Modals
   const [isOpen, setIsOpen] = useState(false);
@@ -135,6 +139,36 @@ export function PlannerPage() {
     }
   };
 
+  const handleMoveToNextDay = async (id: string) => {
+    try {
+      await api.patch(`/planner/${id}/next-day`);
+      toast.success('Task moved to tomorrow');
+      fetchTasks();
+    } catch (err) {
+      toast.error('Failed to move task');
+    }
+  };
+
+  const handleBulkMoveToNextDay = async () => {
+    if (selectedIds.size === 0) return toast.error('Select tasks first');
+    try {
+      await api.post('/planner/bulk-next-day', { ids: Array.from(selectedIds) });
+      toast.success(`${selectedIds.size} task(s) moved to tomorrow`);
+      setSelectedIds(new Set());
+      fetchTasks();
+    } catch (err) {
+      toast.error('Failed to move tasks');
+    }
+  };
+
+  const toggleSelectTask = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const handleToggleStatus = async (task: Task) => {
     const nextStatusMap: Record<TaskStatus, TaskStatus> = {
       TODO: 'IN_PROGRESS',
@@ -194,9 +228,26 @@ export function PlannerPage() {
           <h2 className="text-xl font-semibold text-foreground">Daily Planner</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Track your daily, weekly, and monthly tasks and priorities</p>
         </div>
-        <Button onClick={handleOpenAddModal} className="w-full sm:w-auto bg-primary text-primary-foreground">
-          <Plus className="w-4 h-4 mr-2" /> Add Task
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleBulkMoveToNextDay}
+              className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+            >
+              <CalendarArrowUp className="w-4 h-4 mr-2" />
+              Move {selectedIds.size} to Tomorrow
+            </Button>
+          )}
+          {selectedIds.size > 0 && (
+            <Button variant="ghost" onClick={() => setSelectedIds(new Set())} className="text-muted-foreground">
+              Clear
+            </Button>
+          )}
+          <Button onClick={handleOpenAddModal} className="w-full sm:w-auto bg-primary text-primary-foreground">
+            <Plus className="w-4 h-4 mr-2" /> Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Scope quick filter tabs */}
@@ -299,7 +350,7 @@ export function PlannerPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To Do ({todoTasks.length})</span>
             </div>
             <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {todoTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} getPriorityColor={getPriorityColor} />)}
+              {todoTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
               {todoTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks to do.</p>}
             </div>
           </div>
@@ -310,7 +361,7 @@ export function PlannerPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In Progress ({inProgressTasks.length})</span>
             </div>
             <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {inProgressTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} getPriorityColor={getPriorityColor} />)}
+              {inProgressTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
               {inProgressTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks in progress.</p>}
             </div>
           </div>
@@ -321,7 +372,7 @@ export function PlannerPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Completed ({doneTasks.length})</span>
             </div>
             <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {doneTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} getPriorityColor={getPriorityColor} />)}
+              {doneTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
               {doneTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks completed yet.</p>}
             </div>
           </div>
@@ -418,13 +469,32 @@ interface TaskCardProps {
   onToggle: (t: Task) => void;
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
+  onMoveToNextDay: (id: string) => void;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
   getPriorityColor: (p: TaskPriority) => string;
 }
 
-function TaskCard({ task, onToggle, onEdit, onDelete, getPriorityColor }: TaskCardProps) {
+function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelected, onSelect, getPriorityColor }: TaskCardProps) {
   return (
-    <div className="bg-card border border-border rounded-lg p-3 flex flex-col gap-2.5 group hover:border-primary/40 transition-colors">
+    <div
+      className={cn(
+        'bg-card border rounded-lg p-3 flex flex-col gap-2.5 group hover:border-primary/40 transition-colors',
+        isSelected ? 'border-amber-400/60 bg-amber-400/5' : 'border-border'
+      )}
+    >
       <div className="flex items-start gap-2.5">
+        {/* Checkbox for multi-select */}
+        <button
+          onClick={() => onSelect(task.id)}
+          className={cn(
+            'shrink-0 mt-0.5 w-4 h-4 rounded border transition-colors',
+            isSelected
+              ? 'bg-amber-400 border-amber-400'
+              : 'border-border hover:border-primary bg-transparent'
+          )}
+          title="Select for bulk action"
+        />
         <button
           onClick={() => onToggle(task)}
           className="text-muted-foreground hover:text-primary transition-colors shrink-0 mt-0.5"
@@ -468,6 +538,13 @@ function TaskCard({ task, onToggle, onEdit, onDelete, getPriorityColor }: TaskCa
             </span>
           )}
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+            <button
+              onClick={() => onMoveToNextDay(task.id)}
+              className="p-1 hover:bg-amber-500/10 rounded text-muted-foreground hover:text-amber-500"
+              title="Move to next day"
+            >
+              <CalendarArrowUp className="w-3 h-3" />
+            </button>
             <button onClick={() => onEdit(task)} className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground">
               <Edit2 className="w-3 h-3" />
             </button>

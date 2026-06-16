@@ -178,5 +178,17 @@ export const knowledgeController = {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+  },
+
+  // POST /api/knowledge/:id/save-to-notes
+  async saveToNotes(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const { id } = req.params;
+      const note = await knowledgeService.saveToNotes(id as string, userId);
+      res.status(201).json(note);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   }
 };

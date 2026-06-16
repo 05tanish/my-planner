@@ -771,18 +771,22 @@ function setupBotListeners() {
             where: {
               userId,
               status: { in: ['TODO', 'IN_PROGRESS'] },
-              OR: [{ dueDate: null }, { dueDate: { lte: todayEnd } }],
+              dueDate: { gte: today, lte: todayEnd },
             },
             orderBy: [{ priority: 'desc' }],
             take: 20,
           });
           const priorityIcon: Record<string, string> = { URGENT: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢' };
           if (!tasks.length) {
-            await bot!.sendMessage(chatId, `🎉 <b>All clear!</b> No pending tasks.`, { parse_mode: 'HTML' });
+            await bot!.sendMessage(chatId, `🎉 <b>All clear!</b> No tasks due today.`, { parse_mode: 'HTML' });
             return;
           }
-          let list = `📝 <b>Pending Tasks (${tasks.length})</b>\n${divider()}\n\n`;
-          tasks.forEach((t: any, i: number) => { list += `${i + 1}. ${priorityIcon[t.priority] || '⚪'} <b>${t.title}</b>\n`; });
+          let list = `📝 <b>Today's Tasks (${tasks.length})</b>\n${divider()}\n\n`;
+          tasks.forEach((t: any, i: number) => {
+            list += `${i + 1}. ${priorityIcon[t.priority] || '⚪'} <b>${t.title}</b>`;
+            if (t.category) list += ` <i>(${t.category})</i>`;
+            list += `\n`;
+          });
           list += `\n<i>/done &lt;n&gt; to complete</i>`;
           await bot!.sendMessage(chatId, list, { parse_mode: 'HTML' });
           return;

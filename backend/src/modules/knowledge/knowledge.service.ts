@@ -158,6 +158,27 @@ export const knowledgeService = {
     });
   },
 
+  // Save knowledge capture to Notes
+  async saveToNotes(id: string, userId: string) {
+    const item = await prisma.knowledgeCapture.findFirst({ where: { id, userId } });
+    if (!item) throw new Error('Knowledge item not found');
+
+    const lines: string[] = [];
+    if (item.summary) lines.push(`## Summary\n${item.summary}`);
+    if (item.keyConcepts.length > 0) lines.push(`## Key Concepts\n${item.keyConcepts.join(', ')}`);
+    if (item.notes) lines.push(`## Notes\n${item.notes}`);
+    if (item.sourceUrl) lines.push(`## Source\n${item.sourceUrl}`);
+
+    return prisma.note.create({
+      data: {
+        userId,
+        title: item.title,
+        content: lines.join('\n\n'),
+        category: 'Learning',
+      },
+    });
+  },
+
   // Process YouTube video
   async processYouTubeVideo(userId: string, url: string) {
     const videoId = this.extractYouTubeId(url);

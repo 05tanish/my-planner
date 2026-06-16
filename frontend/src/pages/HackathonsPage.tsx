@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Users, Code, Trophy, Calendar, ExternalLink } from 'lucide-react';
+import { Plus, Search, Users, Trophy, Calendar, ExternalLink, Edit2, Trash2, Link as LinkIcon } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 interface Hackathon {
@@ -21,11 +23,15 @@ interface Hackathon {
   submissionLink?: string;
   githubUrl?: string;
   demoUrl?: string;
+  registrationLink?: string;
   deadline?: string;
   status: string;
   prize?: string;
+  prizePool?: string;
+  teamStatus?: string;
   learnings?: string;
   notes?: string;
+  tags: string[];
   createdAt: string;
 }
 
@@ -38,308 +44,402 @@ const STATUSES = [
   { value: 'PARTICIPATED', label: 'Participated', color: 'bg-gray-500', icon: '✨' },
 ];
 
+const emptyForm = {
+  name: '', teamMembers: '', idea: '', techStack: '', deadline: '',
+  status: 'REGISTERED', prize: '', prizePool: '', registrationLink: '',
+  submissionLink: '', githubUrl: '', demoUrl: '', teamStatus: '', learnings: '', notes: '',
+};
+
 export default function HackathonsPage() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
-  const [filteredHackathons, setFilteredHackathons] = useState<Hackathon[]>([]);
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [filtered, setFiltered] = useState<Hackathon[]>([]);
+  const [activeStatus, setActiveStatus] = useState('all');
+  const [search, setSearch] = useState('');
   const [stats, setStats] = useState<any>(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    teamMembers: '',
-    idea: '',
-    techStack: '',
-    deadline: '',
-    status: 'REGISTERED',
-  });
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Hackathon | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<Hackathon | null>(null);
 
-  useEffect(() => {
-    fetchHackathons();
-    fetchStats();
-  }, []);
+  const [form, setForm] = useState({ ...emptyForm });
 
-  useEffect(() => {
-    filterHackathons();
-  }, [hackathons, activeTab, searchQuery]);
+  useEffect(() => { fetchAll(); fetchStats(); }, []);
+  useEffect(() => { applyFilter(); }, [hackathons, activeStatus, search]);
 
-  const fetchHackathons = async () => {
+  const fetchAll = async () => {
     try {
-      const response = await api.get('/hackathons');
-      setHackathons(response.data);
-    } catch (error) {
-      console.error('Failed to fetch hackathons:', error);
-    }
+      const res = await api.get('/hackathons');
+      setHackathons(res.data);
+    } catch { toast.error('Failed to load hackathons'); }
   };
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/hackathons/stats');
-      setStats(response.data);
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
+      const res = await api.get('/hackathons/stats');
+      setStats(res.data);
+    } catch { /* silent */ }
   };
 
-  const filterHackathons = () => {
-    let filtered = [...hackathons];
-
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(h => h.status === activeTab.toUpperCase());
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(h =>
-        h.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setFilteredHackathons(filtered);
+  const applyFilter = () => {
+    let f = [...hackathons];
+    if (activeStatus !== 'all') f = f.filter(h => h.status === activeStatus.toUpperCase());
+    if (search) f = f.filter(h => h.name.toLowerCase().includes(search.toLowerCase()) || h.idea?.toLowerCase().includes(search.toLowerCase()));
+    setFiltered(f);
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        teamMembers: formData.teamMembers.split(',').map(s => s.trim()).filter(Boolean),
-        techStack: formData.techStack.split(',').map(s => s.trim()).filter(Boolean),
-        deadline: formData.deadline ? new Date(formData.deadline) : null,
-      };
-      await api.post('/hackathons', payload);
-      setIsCreateOpen(false);
-      fetchHackathons();
-      fetchStats();
-      resetForm();
-    } catch (error) {
-      console.error('Failed to create hackathon:', error);
-    }
-  };
+  const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setFormOpen(true); };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      teamMembers: '',
-      idea: '',
-      techStack: '',
-      deadline: '',
-      status: 'REGISTERED',
+  const openEdit = (h: Hackathon) => {
+    setEditing(h);
+    setForm({
+      name: h.name, teamMembers: h.teamMembers.join(', '), idea: h.idea || '',
+      techStack: h.techStack.join(', '), deadline: h.deadline ? h.deadline.split('T')[0] : '',
+      status: h.status, prize: h.prize || '', prizePool: h.prizePool || '',
+      registrationLink: h.registrationLink || '', submissionLink: h.submissionLink || '',
+      githubUrl: h.githubUrl || '', demoUrl: h.demoUrl || '',
+      teamStatus: h.teamStatus || '', learnings: h.learnings || '', notes: h.notes || '',
     });
+    setFormOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusInfo = STATUSES.find(s => s.value === status);
-    return (
-      <Badge className={statusInfo?.color} variant="secondary">
-        {statusInfo?.icon} {statusInfo?.label || status}
-      </Badge>
-    );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      teamMembers: form.teamMembers.split(',').map(s => s.trim()).filter(Boolean),
+      techStack: form.techStack.split(',').map(s => s.trim()).filter(Boolean),
+      tags: [],
+      deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+    };
+    try {
+      if (editing) {
+        await api.patch(`/hackathons/${editing.id}`, payload);
+        toast.success('Hackathon updated');
+        if (detailItem?.id === editing.id) setDetailItem({ ...detailItem, ...payload } as any);
+      } else {
+        await api.post('/hackathons', payload);
+        toast.success('Hackathon added');
+      }
+      setFormOpen(false);
+      fetchAll();
+      fetchStats();
+    } catch { toast.error('Failed to save hackathon'); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/hackathons/${deleteId}`);
+      toast.success('Hackathon deleted');
+      if (detailItem?.id === deleteId) setDetailItem(null);
+      setDeleteId(null);
+      fetchAll();
+      fetchStats();
+    } catch { toast.error('Failed to delete hackathon'); }
+  };
+
+  const statusBadge = (status: string) => {
+    const s = STATUSES.find(x => x.value === status);
+    return <Badge className={s?.color ?? 'bg-gray-500'} variant="secondary">{s?.icon} {s?.label ?? status}</Badge>;
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Hackathon Hub</h1>
           <p className="text-muted-foreground">Track your hackathon journey</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Add Hackathon</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add Hackathon</DialogTitle>
-              <DialogDescription>Track a new hackathon</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <Label>Name *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Hack The North 2026"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Team Members (comma-separated)</Label>
-                  <Input
-                    value={formData.teamMembers}
-                    onChange={(e) => setFormData({ ...formData, teamMembers: e.target.value })}
-                    placeholder="Alice, Bob, Charlie"
-                  />
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map(status => (
-                        <SelectItem key={status.value} value={status.value}>{status.icon} {status.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label>Project Idea</Label>
-                <Textarea
-                  value={formData.idea}
-                  onChange={(e) => setFormData({ ...formData, idea: e.target.value })}
-                  placeholder="AI-powered code review assistant"
-                  rows={2}
-                />
-              </div>
-              <div>
-                <Label>Tech Stack (comma-separated)</Label>
-                <Input
-                  value={formData.techStack}
-                  onChange={(e) => setFormData({ ...formData, techStack: e.target.value })}
-                  placeholder="React, Node.js, OpenAI, PostgreSQL"
-                />
-              </div>
-              <div>
-                <Label>Deadline</Label>
-                <Input
-                  type="datetime-local"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                <Button type="submit">Create</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Hackathon</Button>
       </div>
 
+      {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Total</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Building</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-yellow-500">{stats.building}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Submitted</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-purple-500">{stats.submitted}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Won</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-green-500">{stats.won}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Registered</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{stats.registered}</div></CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: 'Total', value: stats.total, color: '' },
+            { label: 'Registered', value: stats.registered, color: 'text-blue-500' },
+            { label: 'Building', value: stats.building, color: 'text-yellow-500' },
+            { label: 'Submitted', value: stats.submitted, color: 'text-purple-500' },
+            { label: 'Won', value: stats.won, color: 'text-green-500' },
+          ].map(s => (
+            <Card key={s.label}>
+              <CardHeader className="pb-1"><CardTitle className="text-sm">{s.label}</CardTitle></CardHeader>
+              <CardContent><div className={`text-2xl font-bold ${s.color}`}>{s.value}</div></CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Search + Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search hackathons by name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Search hackathons..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={activeTab} onValueChange={setActiveTab}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
+        <Select value={activeStatus} onValueChange={setActiveStatus}>
+          <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {STATUSES.map(status => (
-              <SelectItem key={status.value} value={status.value.toLowerCase()}>
-                {status.icon} {status.label}
-              </SelectItem>
-            ))}
+            {STATUSES.map(s => <SelectItem key={s.value} value={s.value.toLowerCase()}>{s.icon} {s.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          {STATUSES.map(status => (
-            <TabsTrigger key={status.value} value={status.value.toLowerCase()}>{status.icon}</TabsTrigger>
+      {/* Cards */}
+      {filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground mb-4">No hackathons found</p>
+            <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Your First Hackathon</Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(h => (
+            <Card key={h.id} className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => setDetailItem(h)}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-base">{h.name}</CardTitle>
+                  {statusBadge(h.status)}
+                </div>
+                {h.idea && <CardDescription className="mt-1 line-clamp-2">{h.idea}</CardDescription>}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {h.teamMembers.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <span>{h.teamMembers.length} member{h.teamMembers.length !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {h.techStack.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {h.techStack.slice(0, 3).map((t, i) => <Badge key={i} variant="outline" className="text-xs">{t}</Badge>)}
+                    {h.techStack.length > 3 && <Badge variant="outline" className="text-xs">+{h.techStack.length - 3}</Badge>}
+                  </div>
+                )}
+                {h.deadline && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    {format(new Date(h.deadline), 'MMM dd, yyyy')}
+                  </div>
+                )}
+                {h.prize && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Trophy className="w-4 h-4 text-yellow-500" />
+                    <span className="font-medium">{h.prize}</span>
+                  </div>
+                )}
+                <div
+                  className="flex gap-1 pt-2 border-t opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEdit(h)}>
+                    <Edit2 className="w-3 h-3 mr-1" />Edit
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(h.id)}>
+                    <Trash2 className="w-3 h-3 mr-1" />Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </TabsList>
+        </div>
+      )}
 
-        <TabsContent value={activeTab} className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredHackathons.map((hack) => (
-              <Card key={hack.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{hack.name}</CardTitle>
-                    {getStatusBadge(hack.status)}
-                  </div>
-                  {hack.idea && <CardDescription className="mt-2">{hack.idea}</CardDescription>}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {hack.teamMembers.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span>{hack.teamMembers.length} members</span>
-                    </div>
-                  )}
-                  {hack.techStack.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <Code className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                      {hack.techStack.slice(0, 3).map((tech, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">{tech}</Badge>
-                      ))}
-                      {hack.techStack.length > 3 && (
-                        <Badge variant="outline" className="text-xs">+{hack.techStack.length - 3}</Badge>
-                      )}
-                    </div>
-                  )}
-                  {hack.deadline && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      {format(new Date(hack.deadline), 'MMM dd, yyyy')}
-                    </div>
-                  )}
-                  {hack.prize && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Trophy className="w-4 h-4 text-yellow-500" />
-                      <span className="font-medium">{hack.prize}</span>
-                    </div>
-                  )}
-                  <div className="flex gap-2 pt-2">
-                    {hack.githubUrl && (
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={hack.githubUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {hack.demoUrl && (
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={hack.demoUrl} target="_blank" rel="noopener noreferrer">
-                          Demo
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      {/* Create/Edit Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit Hackathon' : 'Add Hackathon'}</DialogTitle>
+            <DialogDescription>Track a hackathon with all details</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Name *</Label>
+              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Hack The North 2026" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.icon} {s.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Deadline</Label>
+                <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label>Project Idea</Label>
+              <Textarea value={form.idea} onChange={e => setForm({ ...form, idea: e.target.value })} rows={2} placeholder="AI-powered code review assistant" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Team Members (comma-separated)</Label>
+                <Input value={form.teamMembers} onChange={e => setForm({ ...form, teamMembers: e.target.value })} placeholder="Alice, Bob, Charlie" />
+              </div>
+              <div>
+                <Label>Team Status</Label>
+                <Input value={form.teamStatus} onChange={e => setForm({ ...form, teamStatus: e.target.value })} placeholder="Looking for members, Full team, Solo" />
+              </div>
+            </div>
+            <div>
+              <Label>Tech Stack (comma-separated)</Label>
+              <Input value={form.techStack} onChange={e => setForm({ ...form, techStack: e.target.value })} placeholder="React, Node.js, OpenAI" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Prize</Label>
+                <Input value={form.prize} onChange={e => setForm({ ...form, prize: e.target.value })} placeholder="1st Place, Runner-up" />
+              </div>
+              <div>
+                <Label>Prize Pool</Label>
+                <Input value={form.prizePool} onChange={e => setForm({ ...form, prizePool: e.target.value })} placeholder="$10,000" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Registration Link</Label>
+                <Input value={form.registrationLink} onChange={e => setForm({ ...form, registrationLink: e.target.value })} placeholder="https://devpost.com/..." />
+              </div>
+              <div>
+                <Label>GitHub URL</Label>
+                <Input value={form.githubUrl} onChange={e => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Demo URL</Label>
+                <Input value={form.demoUrl} onChange={e => setForm({ ...form, demoUrl: e.target.value })} placeholder="https://demo.myapp.com" />
+              </div>
+              <div>
+                <Label>Submission Link</Label>
+                <Input value={form.submissionLink} onChange={e => setForm({ ...form, submissionLink: e.target.value })} placeholder="https://devpost.com/submit/..." />
+              </div>
+            </div>
+            <div>
+              <Label>Learnings</Label>
+              <Textarea value={form.learnings} onChange={e => setForm({ ...form, learnings: e.target.value })} rows={2} placeholder="What did you learn from this hackathon?" />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Any additional notes..." />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+              <Button type="submit">{editing ? 'Save Changes' : 'Add Hackathon'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Hackathon?</DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
           </div>
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailItem} onOpenChange={() => setDetailItem(null)}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          {detailItem && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <DialogTitle className="text-xl">{detailItem.name}</DialogTitle>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => { setDetailItem(null); openEdit(detailItem); }}>
+                      <Edit2 className="w-3 h-3 mr-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setDetailItem(null); setDeleteId(detailItem.id); }}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {statusBadge(detailItem.status)}
+                  {detailItem.deadline && (
+                    <Badge variant="outline">📅 {format(new Date(detailItem.deadline), 'MMM dd, yyyy')}</Badge>
+                  )}
+                </div>
+                {detailItem.idea && <p className="text-sm text-muted-foreground">{detailItem.idea}</p>}
+                {detailItem.teamMembers.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Team</p>
+                    <div className="flex flex-wrap gap-2">
+                      {detailItem.teamMembers.map((m, i) => <Badge key={i} variant="outline">{m}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {detailItem.techStack.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Tech Stack</p>
+                    <div className="flex flex-wrap gap-1">
+                      {detailItem.techStack.map((t, i) => <Badge key={i} variant="secondary">{t}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {detailItem.prize && (
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-medium">{detailItem.prize}</span>
+                    {detailItem.prizePool && <span className="text-sm text-muted-foreground">({detailItem.prizePool})</span>}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {detailItem.registrationLink && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={detailItem.registrationLink} target="_blank" rel="noopener noreferrer"><LinkIcon className="w-3 h-3 mr-1" />Register</a>
+                    </Button>
+                  )}
+                  {detailItem.githubUrl && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={detailItem.githubUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3 mr-1" />GitHub</a>
+                    </Button>
+                  )}
+                  {detailItem.demoUrl && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={detailItem.demoUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3 mr-1" />Demo</a>
+                    </Button>
+                  )}
+                  {detailItem.submissionLink && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={detailItem.submissionLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3 mr-1" />Submission</a>
+                    </Button>
+                  )}
+                </div>
+                {detailItem.learnings && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Learnings</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/40 p-3 rounded-lg">{detailItem.learnings}</p>
+                  </div>
+                )}
+                {detailItem.notes && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Notes</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/40 p-3 rounded-lg">{detailItem.notes}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

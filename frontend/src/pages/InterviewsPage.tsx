@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Star, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Star, Clock, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,28 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface InterviewQuestion {
   id: string;
@@ -61,145 +46,122 @@ const DIFFICULTIES = [
   { value: 'EXPERT', label: 'Expert', color: 'text-red-500' },
 ];
 
+const emptyForm = {
+  category: 'BACKEND', question: '', shortAnswer: '', detailedAnswer: '',
+  notes: '', tags: '', difficulty: 'MEDIUM',
+};
+
 export default function InterviewsPage() {
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
-  const [filteredQuestions, setFilteredQuestions] = useState<InterviewQuestion[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [filtered, setFiltered] = useState<InterviewQuestion[]>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [search, setSearch] = useState('');
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    category: 'BACKEND',
-    question: '',
-    shortAnswer: '',
-    detailedAnswer: '',
-    notes: '',
-    tags: '',
-    difficulty: 'MEDIUM',
-  });
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<InterviewQuestion | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
 
-  useEffect(() => {
-    fetchQuestions();
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchAll(); fetchStats(); }, []);
+  useEffect(() => { applyFilter(); }, [questions, activeCategory, search]);
 
-  useEffect(() => {
-    filterQuestions();
-  }, [questions, activeCategory, searchQuery]);
-
-  const fetchQuestions = async () => {
+  const fetchAll = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/interviews');
-      setQuestions(response.data);
-    } catch (error) {
-      console.error('Failed to fetch questions:', error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await api.get('/interviews');
+      setQuestions(res.data);
+    } catch { toast.error('Failed to load questions'); }
+    finally { setLoading(false); }
   };
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/interviews/stats');
-      setStats(response.data);
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
+      const res = await api.get('/interviews/stats');
+      setStats(res.data);
+    } catch { /* silent */ }
   };
 
-  const filterQuestions = () => {
-    let filtered = [...questions];
-
-    // Filter by category
+  const applyFilter = () => {
+    let f = [...questions];
     if (activeCategory !== 'all' && activeCategory !== 'favorites' && activeCategory !== 'due') {
-      filtered = filtered.filter(q => q.category === activeCategory);
+      f = f.filter(q => q.category === activeCategory);
     }
-
-    // Filter favorites
-    if (activeCategory === 'favorites') {
-      filtered = filtered.filter(q => q.isFavorite);
-    }
-
-    // Filter due for revision
+    if (activeCategory === 'favorites') f = f.filter(q => q.isFavorite);
     if (activeCategory === 'due') {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      filtered = filtered.filter(q => 
-        !q.lastRevisedAt || new Date(q.lastRevisedAt) < sevenDaysAgo
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      f = f.filter(q => !q.lastRevisedAt || new Date(q.lastRevisedAt) < cutoff);
+    }
+    if (search) {
+      f = f.filter(q =>
+        q.question.toLowerCase().includes(search.toLowerCase()) ||
+        q.shortAnswer?.toLowerCase().includes(search.toLowerCase()) ||
+        q.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
       );
     }
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(q =>
-        q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.shortAnswer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-
-    setFilteredQuestions(filtered);
+    setFiltered(f);
   };
 
-  const handleCreateQuestion = async (e: React.FormEvent) => {
+  const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setFormOpen(true); };
+  const openEdit = (q: InterviewQuestion) => {
+    setEditing(q);
+    setForm({
+      category: q.category, question: q.question, shortAnswer: q.shortAnswer || '',
+      detailedAnswer: q.detailedAnswer || '', notes: q.notes || '',
+      tags: q.tags.join(', '), difficulty: q.difficulty,
+    });
+    setFormOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = { ...form, tags: form.tags.split(',').map(s => s.trim()).filter(Boolean) };
     try {
-      const payload = {
-        ...formData,
-        tags: formData.tags.split(',').map(s => s.trim()).filter(Boolean),
-      };
-      await api.post('/interviews', payload);
-      setIsCreateOpen(false);
-      fetchQuestions();
+      if (editing) {
+        await api.patch(`/interviews/${editing.id}`, payload);
+        toast.success('Question updated');
+      } else {
+        await api.post('/interviews', payload);
+        toast.success('Question added');
+      }
+      setFormOpen(false);
+      fetchAll();
       fetchStats();
-      resetForm();
-    } catch (error) {
-      console.error('Failed to create question:', error);
-    }
+    } catch { toast.error('Failed to save question'); }
   };
 
-  const toggleFavorite = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/interviews/${deleteId}`);
+      toast.success('Question deleted');
+      setDeleteId(null);
+      fetchAll();
+      fetchStats();
+    } catch { toast.error('Failed to delete question'); }
+  };
+
+  const toggleFavorite = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await api.post(`/interviews/${id}/favorite`);
-      fetchQuestions();
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-    }
+      fetchAll();
+    } catch { toast.error('Failed to update favorite'); }
   };
 
   const markRevised = async (id: string) => {
     try {
       await api.post(`/interviews/${id}/revise`);
-      fetchQuestions();
+      toast.success('Marked as revised');
+      fetchAll();
       fetchStats();
-    } catch (error) {
-      console.error('Failed to mark revised:', error);
-    }
+    } catch { toast.error('Failed to mark revised'); }
   };
 
-  const resetForm = () => {
-    setFormData({
-      category: 'BACKEND',
-      question: '',
-      shortAnswer: '',
-      detailedAnswer: '',
-      notes: '',
-      tags: '',
-      difficulty: 'MEDIUM',
-    });
-  };
+  const diffColor = (d: string) => DIFFICULTIES.find(x => x.value === d)?.color ?? 'text-gray-500';
 
-  const getDifficultyColor = (difficulty: string) => {
-    return DIFFICULTIES.find(d => d.value === difficulty)?.color || 'text-gray-500';
-  };
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading interviews...</div>;
-  }
+  if (loading) return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -209,264 +171,108 @@ export default function InterviewsPage() {
           <h1 className="text-3xl font-bold">Interview Vault</h1>
           <p className="text-muted-foreground">Master your interview preparation</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Question
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add Interview Question</DialogTitle>
-              <DialogDescription>Store questions and answers for revision</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateQuestion} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="difficulty">Difficulty</Label>
-                  <Select value={formData.difficulty} onValueChange={(v) => setFormData({ ...formData, difficulty: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DIFFICULTIES.map(diff => (
-                        <SelectItem key={diff.value} value={diff.value}>{diff.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="question">Question *</Label>
-                <Textarea
-                  id="question"
-                  value={formData.question}
-                  onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-                  placeholder="Explain the difference between REST and GraphQL"
-                  rows={2}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="shortAnswer">Short Answer</Label>
-                <Textarea
-                  id="shortAnswer"
-                  value={formData.shortAnswer}
-                  onChange={(e) => setFormData({ ...formData, shortAnswer: e.target.value })}
-                  placeholder="Brief 2-3 sentence answer"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label htmlFor="detailedAnswer">Detailed Answer</Label>
-                <Textarea
-                  id="detailedAnswer"
-                  value={formData.detailedAnswer}
-                  onChange={(e) => setFormData({ ...formData, detailedAnswer: e.target.value })}
-                  placeholder="Complete explanation with examples"
-                  rows={5}
-                />
-              </div>
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Additional tips or resources"
-                  rows={2}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tags">Tags (comma-separated)</Label>
-                <Input
-                  id="tags"
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="api, rest, architecture"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Add Question</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Question</Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Questions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Favorites</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.favorites}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Due for Revision</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-500">{stats.dueForRevision}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.byCategory.length}</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Total', value: stats.total, color: '' },
+            { label: 'Favorites', value: stats.favorites, color: 'text-yellow-500' },
+            { label: 'Due for Revision', value: stats.dueForRevision, color: 'text-orange-500' },
+            { label: 'Categories', value: stats.byCategory?.length ?? 0, color: '' },
+          ].map(s => (
+            <Card key={s.label}>
+              <CardHeader className="pb-1"><CardTitle className="text-sm">{s.label}</CardTitle></CardHeader>
+              <CardContent><div className={`text-2xl font-bold ${s.color}`}>{s.value}</div></CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search questions, answers, or tags..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Search questions, answers, tags..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       {/* Tabs */}
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-        <TabsList className="grid grid-cols-7 w-full">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="BACKEND">Backend</TabsTrigger>
-          <TabsTrigger value="DEVOPS">DevOps</TabsTrigger>
-          <TabsTrigger value="BLOCKCHAIN">Blockchain</TabsTrigger>
-          <TabsTrigger value="HR">HR</TabsTrigger>
-          <TabsTrigger value="favorites">
-            <Star className="w-4 h-4" />
-          </TabsTrigger>
-          <TabsTrigger value="due">
-            <Clock className="w-4 h-4" />
-          </TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="all">All ({questions.length})</TabsTrigger>
+          {CATEGORIES.map(c => (
+            <TabsTrigger key={c.value} value={c.value}>
+              {c.label} ({questions.filter(q => q.category === c.value).length})
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value="favorites"><Star className="w-4 h-4" /></TabsTrigger>
+          <TabsTrigger value="due"><Clock className="w-4 h-4" /></TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeCategory} className="mt-6">
-          {filteredQuestions.length === 0 ? (
+          {filtered.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <p className="text-muted-foreground mb-4">No questions found</p>
-                <Button onClick={() => setIsCreateOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Question
-                </Button>
+                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Your First Question</Button>
               </CardContent>
             </Card>
           ) : (
-            <Accordion type="single" collapsible className="space-y-4">
-              {filteredQuestions.map((question) => (
-                <AccordionItem
-                  key={question.id}
-                  value={question.id}
-                  className="border rounded-lg px-4 bg-card"
-                >
+            <Accordion type="single" collapsible className="space-y-3">
+              {filtered.map(q => (
+                <AccordionItem key={q.id} value={q.id} className="border rounded-lg px-4 bg-card">
                   <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-start justify-between w-full pr-4">
+                    <div className="flex items-start justify-between w-full pr-4 gap-2">
                       <div className="flex-1 text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                            {question.difficulty}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {question.category}
-                          </Badge>
-                          {question.revisionCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              Revised {question.revisionCount}x
-                            </Badge>
-                          )}
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`text-xs font-medium ${diffColor(q.difficulty)}`}>{q.difficulty}</span>
+                          <Badge variant="outline" className="text-xs">{q.category}</Badge>
+                          {q.revisionCount > 0 && <Badge variant="secondary" className="text-xs">×{q.revisionCount}</Badge>}
                         </div>
-                        <p className="font-medium">{question.question}</p>
+                        <p className="font-medium text-sm">{q.question}</p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(question.id);
-                        }}
+                      <button
+                        className="shrink-0 p-1 rounded hover:bg-secondary"
+                        onClick={e => toggleFavorite(q.id, e)}
                       >
-                        <Star
-                          className={`w-4 h-4 ${
-                            question.isFavorite ? 'fill-yellow-500 text-yellow-500' : ''
-                          }`}
-                        />
-                      </Button>
+                        <Star className={`w-4 h-4 ${q.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                      </button>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-4 pt-4">
-                    {question.shortAnswer && (
+                  <AccordionContent className="space-y-4 pt-4 pb-4">
+                    {q.shortAnswer && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">Short Answer:</h4>
-                        <p className="text-sm text-muted-foreground">{question.shortAnswer}</p>
+                        <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Short Answer</h4>
+                        <p className="text-sm">{q.shortAnswer}</p>
                       </div>
                     )}
-                    {question.detailedAnswer && (
+                    {q.detailedAnswer && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">Detailed Answer:</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {question.detailedAnswer}
-                        </p>
+                        <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Detailed Answer</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{q.detailedAnswer}</p>
                       </div>
                     )}
-                    {question.notes && (
+                    {q.notes && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">Notes:</h4>
-                        <p className="text-sm text-muted-foreground italic">{question.notes}</p>
+                        <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Notes</h4>
+                        <p className="text-sm text-muted-foreground italic">{q.notes}</p>
                       </div>
                     )}
-                    {question.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {question.tags.map((tag, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
+                    {q.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {q.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>)}
                       </div>
                     )}
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markRevised(question.id)}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Mark Revised
+                    <div className="flex gap-2 pt-2 border-t flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => markRevised(q.id)}>
+                        <CheckCircle2 className="w-4 h-4 mr-1" />Mark Revised
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openEdit(q)}>
+                        <Edit2 className="w-4 h-4 mr-1" />Edit
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(q.id)}>
+                        <Trash2 className="w-4 h-4 mr-1" />Delete
                       </Button>
                     </div>
                   </AccordionContent>
@@ -476,6 +282,72 @@ export default function InterviewsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit Question' : 'Add Interview Question'}</DialogTitle>
+            <DialogDescription>Store interview Q&A for revision</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Category *</Label>
+                <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Difficulty</Label>
+                <Select value={form.difficulty} onValueChange={v => setForm({ ...form, difficulty: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{DIFFICULTIES.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Question *</Label>
+              <Textarea value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="Explain the difference between REST and GraphQL" rows={2} required />
+            </div>
+            <div>
+              <Label>Short Answer</Label>
+              <Textarea value={form.shortAnswer} onChange={e => setForm({ ...form, shortAnswer: e.target.value })} placeholder="Brief 2-3 sentence answer" rows={3} />
+            </div>
+            <div>
+              <Label>Detailed Answer</Label>
+              <Textarea value={form.detailedAnswer} onChange={e => setForm({ ...form, detailedAnswer: e.target.value })} placeholder="Complete explanation with examples" rows={5} />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Tips, resources, follow-up questions" rows={2} />
+            </div>
+            <div>
+              <Label>Tags (comma-separated)</Label>
+              <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="api, rest, architecture" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+              <Button type="submit">{editing ? 'Save Changes' : 'Add Question'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Question?</DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

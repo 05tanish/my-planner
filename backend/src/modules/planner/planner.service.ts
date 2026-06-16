@@ -81,7 +81,41 @@ export const getTodayTasks = async (userId: string) => {
       userId,
       scope: 'DAILY',
       status: { not: 'DONE' },
+      dueDate: {
+        gte: today,
+        lt: tomorrow,
+      },
     },
     orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
   });
+};
+
+export const moveTaskToNextDay = async (userId: string, id: string) => {
+  const task = await prisma.task.findFirst({ where: { id, userId } });
+  if (!task) throw new AppError('Task not found.', 404);
+
+  const currentDue = task.dueDate ? new Date(task.dueDate) : new Date();
+  currentDue.setHours(0, 0, 0, 0);
+  const nextDay = new Date(currentDue);
+  nextDay.setDate(nextDay.getDate() + 1);
+
+  return prisma.task.update({ where: { id }, data: { dueDate: nextDay } });
+};
+
+export const bulkMoveTasksToNextDay = async (userId: string, ids: string[]) => {
+  // Verify all tasks belong to user
+  const tasks = await prisma.task.findMany({ where: { id: { in: ids }, userId } });
+  if (tasks.length !== ids.length) throw new AppError('Some tasks not found.', 404);
+
+  const results = await Promise.all(
+    tasks.map(task => {
+      const currentDue = task.dueDate ? new Date(task.dueDate) : new Date();
+      currentDue.setHours(0, 0, 0, 0);
+      const nextDay = new Date(currentDue);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return prisma.task.update({ where: { id: task.id }, data: { dueDate: nextDay } });
+    })
+  );
+
+  return { moved: results.length };
 };

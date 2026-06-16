@@ -17,5 +17,6 @@ router.delete('/:id', knowledgeController.delete);
 router.post('/:id/link-dsa', knowledgeController.linkToDsa);
 router.post('/:id/link-projects', knowledgeController.linkToProjects);
 router.post('/:id/link-questions', knowledgeController.linkToQuestions);
+router.post('/:id/save-to-notes', knowledgeController.saveToNotes);
 
 export default router;

@@ -4,6 +4,8 @@ import { runGithubReminderJob } from './githubReminder.job';
 import { runAnalyticsSnapshotJob } from './analyticsSnapshot.job';
 import { runHourlyReminderJob } from './hourlyReminder.job';
 import { startV2Jobs } from './v2Jobs';
+import { runDailyResetJob } from './dailyReset.job';
+import { runPlatformSyncJob } from './platformSync.job';
 
 export const initScheduler = () => {
   console.log('⏰ Initializing background job scheduler...');
@@ -30,6 +32,20 @@ export const initScheduler = () => {
   cron.schedule('0 * * * *', async () => {
     console.log('⏰ Triggered Scheduled Task: Hourly Status Digest');
     await runHourlyReminderJob();
+  });
+
+  // 5. Daily Reset - Every day at 4:00 AM
+  //    - Rolls over incomplete DAILY tasks to today
+  //    - Creates fresh DsaDailyGoal for today
+  cron.schedule('0 4 * * *', async () => {
+    console.log('⏰ Triggered Scheduled Task: Daily Reset');
+    await runDailyResetJob();
+  });
+
+  // 6. Platform Sync (LeetCode, GFG) - Daily at 6:00 AM
+  cron.schedule('0 6 * * *', async () => {
+    console.log('⏰ Triggered Scheduled Task: Platform Sync (LeetCode/GFG)');
+    await runPlatformSyncJob();
   });
 
   // V2 Jobs - Alert scanner, AI mentor, weekly review
