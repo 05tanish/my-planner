@@ -52,7 +52,7 @@ export const getTasks = async (
   }
 
   const [tasks, total] = await Promise.all([
-    prisma.task.findMany({ where, orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }], skip: (query.page - 1) * query.limit, take: query.limit }),
+    prisma.task.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { priority: 'desc' }, { dueDate: 'asc' }], skip: (query.page - 1) * query.limit, take: query.limit }),
     prisma.task.count({ where }),
   ]);
   return { tasks, pagination: { total, page: query.page, limit: query.limit, pages: Math.ceil(total / query.limit) } };
@@ -119,3 +119,20 @@ export const bulkMoveTasksToNextDay = async (userId: string, ids: string[]) => {
 
   return { moved: results.length };
 };
+
+export const bulkDeleteTasks = async (userId: string, ids: string[]) => {
+  const result = await prisma.task.deleteMany({
+    where: { id: { in: ids }, userId },
+  });
+  return { deleted: result.count };
+};
+
+export const reorderTasks = async (userId: string, items: { id: string; sortOrder: number }[]) => {
+  await prisma.$transaction(
+    items.map(({ id, sortOrder }) =>
+      prisma.task.updateMany({ where: { id, userId }, data: { sortOrder } })
+    )
+  );
+  return { updated: items.length };
+};
+

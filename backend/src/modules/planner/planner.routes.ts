@@ -7,6 +7,8 @@ router.get('/today', c.todayTasks);
 router.get('/', c.list);
 router.post('/', c.create);
 router.post('/bulk-next-day', c.bulkMoveToNextDay);
+router.post('/bulk-delete', c.bulkDelete);
+router.post('/reorder', c.reorder);
 router.patch('/:id', c.update);
 router.patch('/:id/next-day', c.moveToNextDay);
 router.delete('/:id', c.remove);

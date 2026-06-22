@@ -47,3 +47,26 @@ export const bulkMoveToNextDay = async (req: AuthRequest, res: Response, next: N
   }
   catch (err) { next(err); }
 };
+
+// POST /planner/bulk-delete — bulk delete tasks
+export const bulkDelete = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array required' });
+    }
+    return sendSuccess(res, await service.bulkDeleteTasks(req.user!.userId, ids), 'Tasks deleted successfully');
+  }
+  catch (err) { next(err); }
+};
+
+export const reorder = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'items array required' });
+    }
+    return sendSuccess(res, await service.reorderTasks(req.user!.userId, items), 'Tasks reordered');
+  } catch (err) { next(err); }
+};
+

@@ -15,6 +15,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '../components/ui/dialog';
 import { cn } from '../lib/utils';
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function toLocalDateString(date: Date): string {
   const y = date.getFullYear();
@@ -161,6 +169,19 @@ export function PlannerPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return toast.error('Select tasks first');
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} tasks?`)) return;
+    try {
+      await api.post('/planner/bulk-delete', { ids: Array.from(selectedIds) });
+      toast.success(`${selectedIds.size} task(s) deleted`);
+      setSelectedIds(new Set());
+      fetchTasks();
+    } catch (err) {
+      toast.error('Failed to delete tasks');
+    }
+  };
+
   const toggleSelectTask = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -220,6 +241,79 @@ export function PlannerPage() {
   const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS');
   const doneTasks = tasks.filter(t => t.status === 'DONE');
 
+  // DnD logic
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeTask = tasks.find(t => t.id === activeId);
+    if (!activeTask) return;
+
+    // Find if over is a task or a container
+    const overTask = tasks.find(t => t.id === overId);
+    const overStatus = overTask ? overTask.status : (overId as TaskStatus);
+
+    if (activeId !== overId) {
+      const activeItems = tasks.filter(t => t.status === activeTask.status);
+      const overItems = tasks.filter(t => t.status === overStatus);
+      
+      const oldIndex = activeItems.findIndex(t => t.id === activeId);
+      let newIndex = overItems.findIndex(t => t.id === overId);
+      if (newIndex < 0) newIndex = overItems.length; // Drop at end of empty col
+
+      let newTasks = [...tasks];
+      let hasStatusChange = activeTask.status !== overStatus;
+
+      if (hasStatusChange) {
+        // Move across columns
+        activeTask.status = overStatus;
+        overItems.splice(newIndex, 0, activeTask);
+        
+        // Optimistic UI update
+        newTasks = newTasks.map(t => {
+          if (t.id === activeId) return { ...t, status: overStatus };
+          return t;
+        });
+      } else {
+        // Reorder within column
+        const sortedCol = arrayMove(activeItems, oldIndex, newIndex);
+        sortedCol.forEach((t, i) => { t.sortOrder = i; });
+        
+        newTasks = newTasks.map(t => {
+          const sortedItem = sortedCol.find(st => st.id === t.id);
+          if (sortedItem) return { ...t, sortOrder: sortedItem.sortOrder };
+          return t;
+        });
+      }
+
+      setTasks(newTasks);
+
+      // Sync with server
+      try {
+        if (hasStatusChange) {
+          await api.patch(`/planner/${activeId}`, { status: overStatus });
+        }
+        
+        // Always reorder the target column to sync sortOrders
+        const columnItems = newTasks.filter(t => t.status === overStatus);
+        const reorderPayload = columnItems.map((t, idx) => ({ id: t.id, sortOrder: idx }));
+        await api.post('/planner/reorder', { items: reorderPayload });
+        
+      } catch (err) {
+        toast.error('Failed to update task order');
+        fetchTasks(); // Revert on failure
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -237,6 +331,16 @@ export function PlannerPage() {
             >
               <CalendarArrowUp className="w-4 h-4 mr-2" />
               Move {selectedIds.size} to Tomorrow
+            </Button>
+          )}
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleBulkDelete}
+              className="text-destructive border-destructive/50 hover:bg-destructive/10"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete {selectedIds.size}
             </Button>
           )}
           {selectedIds.size > 0 && (
@@ -343,40 +447,48 @@ export function PlannerPage() {
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Column 1: TODO */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-border pb-2 px-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To Do ({todoTasks.length})</span>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Column 1: TODO */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border pb-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To Do ({todoTasks.length})</span>
+              </div>
+              <SortableContext items={todoTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div id="TODO" className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin min-h-[100px]">
+                  {todoTasks.map(t => <SortableTaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
+                  {todoTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg pointer-events-none">Drop tasks here</p>}
+                </div>
+              </SortableContext>
             </div>
-            <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {todoTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
-              {todoTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks to do.</p>}
-            </div>
-          </div>
 
-          {/* Column 2: IN PROGRESS */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-border pb-2 px-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In Progress ({inProgressTasks.length})</span>
+            {/* Column 2: IN PROGRESS */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border pb-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">In Progress ({inProgressTasks.length})</span>
+              </div>
+              <SortableContext items={inProgressTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div id="IN_PROGRESS" className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin min-h-[100px]">
+                  {inProgressTasks.map(t => <SortableTaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
+                  {inProgressTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg pointer-events-none">Drop tasks here</p>}
+                </div>
+              </SortableContext>
             </div>
-            <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {inProgressTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
-              {inProgressTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks in progress.</p>}
-            </div>
-          </div>
 
-          {/* Column 3: DONE */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-border pb-2 px-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Completed ({doneTasks.length})</span>
-            </div>
-            <div className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin">
-              {doneTasks.map(t => <TaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
-              {doneTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">No tasks completed yet.</p>}
+            {/* Column 3: DONE */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border pb-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Completed ({doneTasks.length})</span>
+              </div>
+              <SortableContext items={doneTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div id="DONE" className="space-y-3 overflow-y-auto max-h-[60vh] p-1 scrollbar-thin min-h-[100px]">
+                  {doneTasks.map(t => <SortableTaskCard key={t.id} task={t} onToggle={handleToggleStatus} onEdit={handleOpenEditModal} onDelete={handleDelete} onMoveToNextDay={handleMoveToNextDay} isSelected={selectedIds.has(t.id)} onSelect={toggleSelectTask} getPriorityColor={getPriorityColor} />)}
+                  {doneTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg pointer-events-none">Drop tasks here</p>}
+                </div>
+              </SortableContext>
             </div>
           </div>
-        </div>
+        </DndContext>
       )}
 
       {/* Task Modal */}
@@ -475,15 +587,50 @@ interface TaskCardProps {
   getPriorityColor: (p: TaskPriority) => string;
 }
 
+function SortableTaskCard(props: TaskCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: props.task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      {/* Drag handle — only this triggers drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors z-10 select-none"
+        title="Drag to reorder"
+      >
+        ⠿
+      </div>
+      <div className="pl-5">
+        <TaskCard {...props} />
+      </div>
+    </div>
+  );
+}
+
 function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelected, onSelect, getPriorityColor }: TaskCardProps) {
   return (
     <div
       className={cn(
-        'bg-card border rounded-lg p-3 flex flex-col gap-2.5 group hover:border-primary/40 transition-colors',
+        'bg-card border rounded-lg p-3 flex flex-col gap-2.5 group hover:border-primary/40 transition-colors cursor-grab active:cursor-grabbing',
         isSelected ? 'border-amber-400/60 bg-amber-400/5' : 'border-border'
       )}
     >
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-start gap-2.5" onPointerDown={e => e.stopPropagation()}>
         {/* Checkbox for multi-select */}
         <button
           onClick={() => onSelect(task.id)}
@@ -530,7 +677,7 @@ function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelecte
             <span className="bg-secondary px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground">{task.category}</span>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onPointerDown={e => e.stopPropagation()}>
           {task.dueDate && (
             <span className="text-muted-foreground flex items-center gap-0.5 mr-1 font-mono">
               <Calendar className="w-2.5 h-2.5" />
@@ -557,3 +704,4 @@ function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelecte
     </div>
   );
 }
+
