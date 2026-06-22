@@ -10,7 +10,7 @@ const PAGE_TITLES: Record<string, { title: string; desc: string }> = {
   '/planner':   { title: 'Daily Planner',  desc: 'Manage tasks by scope & priority'      },
   '/dsa':       { title: 'DSA Tracker',    desc: 'Solve problems, track revisions'       },
   '/notes':     { title: 'Notes',          desc: 'Capture & organize your knowledge'     },
-  '/learning':  { title: 'Learning Hub',   desc: 'Track what you\'re studying'           },
+
   '/resources': { title: 'Resource Vault', desc: 'Bookmarks, PDFs & references'          },
   '/placement': { title: 'Placement Prep', desc: 'CS fundamentals & interview prep'      },
   '/jobs':      { title: 'Job Tracker',    desc: 'Track applications & follow-ups'       },

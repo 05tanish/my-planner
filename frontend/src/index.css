@@ -203,6 +203,14 @@
 .w-md-editor-content,
 .w-md-editor-text-pre,
 .w-md-editor-text-input { background-color: hsl(var(--card)) !important; }
+.w-md-editor-text-input {
+  color: hsl(var(--foreground)) !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+}
+.w-md-editor-text-input::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  -webkit-text-fill-color: hsl(var(--muted-foreground)) !important;
+}
 .w-md-editor-text  { color: hsl(var(--foreground)) !important; }
 .wmde-markdown      { background-color: hsl(var(--card)) !important; color: hsl(var(--foreground)) !important; }
 

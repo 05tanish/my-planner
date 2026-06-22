@@ -14,7 +14,7 @@ const DSAPage         = lazy(() => import('../pages/DSAPage').then(m => ({ defau
 const NotesPage       = lazy(() => import('../pages/NotesPage').then(m => ({ default: m.NotesPage })));
 const PlannerPage     = lazy(() => import('../pages/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const JobsPage        = lazy(() => import('../pages/JobsPage').then(m => ({ default: m.JobsPage })));
-const LearningPage    = lazy(() => import('../pages/LearningPage').then(m => ({ default: m.LearningPage })));
+
 const ResourcesPage   = lazy(() => import('../pages/ResourcesPage').then(m => ({ default: m.ResourcesPage })));
 const BooksPage       = lazy(() => import('../pages/BooksPage').then(m => ({ default: m.BooksPage })));
 const PlacementPage   = lazy(() => import('../pages/PlacementPage').then(m => ({ default: m.PlacementPage })));
@@ -70,9 +70,7 @@ export function AppRouter() {
         <Route path="/jobs" element={
           <Suspense fallback={<PageLoader />}><JobsPage /></Suspense>
         } />
-        <Route path="/learning" element={
-          <Suspense fallback={<PageLoader />}><LearningPage /></Suspense>
-        } />
+
         <Route path="/resources" element={
           <Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense>
         } />

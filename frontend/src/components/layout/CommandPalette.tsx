@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Command } from 'cmdk';
 import {
-  LayoutDashboard, CalendarCheck, Code2, FileText, GraduationCap,
+  LayoutDashboard, CalendarCheck, Code2, FileText,
   BookMarked, Target, Briefcase, Library, BarChart2,
   Network, Settings, Search
 } from 'lucide-react';
@@ -44,7 +44,7 @@ export function CommandPalette() {
     { label: 'Daily Planner', path: '/planner', Icon: CalendarCheck },
     { label: 'DSA Tracker', path: '/dsa', Icon: Code2 },
     { label: 'Notes', path: '/notes', Icon: FileText },
-    { label: 'Learning Hub', path: '/learning', Icon: GraduationCap },
+
     { label: 'Resource Vault', path: '/resources', Icon: BookMarked },
     { label: 'Placement Prep', path: '/placement', Icon: Target },
     { label: 'Job Tracker', path: '/jobs', Icon: Briefcase },
