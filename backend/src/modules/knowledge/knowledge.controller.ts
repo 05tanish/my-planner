@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { sendSuccess, sendError } from '../../utils/response';
 import { knowledgeService } from './knowledge.service';
 
 export const knowledgeController = {
@@ -11,9 +12,9 @@ export const knowledgeController = {
         tags: req.query.tags ? String(req.query.tags).split(',') : undefined
       };
       const knowledge = await knowledgeService.getAll(userId, filters);
-      res.json(knowledge);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -22,9 +23,9 @@ export const knowledgeController = {
     try {
       const userId = req.user!.userId;
       const stats = await knowledgeService.getStats(userId);
-      res.json(stats);
+      return sendSuccess(res, stats);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -33,15 +34,13 @@ export const knowledgeController = {
     try {
       const userId = req.user!.userId;
       const query = req.query.q as string;
-      
       if (!query) {
-        return res.status(400).json({ error: 'Search query required' });
+        return sendError(res, 'Search query required', 400);
       }
-
-      const results = await knowledgeService.search(userId, query as string);
-      res.json(results);
+      const results = await knowledgeService.search(userId, query);
+      return sendSuccess(res, results);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -49,16 +48,14 @@ export const knowledgeController = {
   async getOne(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      const knowledge = await knowledgeService.getOne(id as string, userId);
-      
+      const id = req.params.id as string;
+      const knowledge = await knowledgeService.getOne(id, userId);
       if (!knowledge) {
-        return res.status(404).json({ error: 'Knowledge not found' });
+        return sendError(res, 'Knowledge item not found', 404);
       }
-
-      res.json(knowledge);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -67,25 +64,20 @@ export const knowledgeController = {
     try {
       const userId = req.user!.userId;
       const { url } = req.body;
-
       if (!url) {
-        return res.status(400).json({ error: 'URL required' });
+        return sendError(res, 'URL is required', 400);
       }
-
       let knowledge;
-
-      // Process based on URL type
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        knowledge = await knowledgeService.processYouTubeVideo(userId, url as string);
+        knowledge = await knowledgeService.processYouTubeVideo(userId, url);
       } else if (url.includes('github.com')) {
-        knowledge = await knowledgeService.processGitHubRepo(userId, url as string);
+        knowledge = await knowledgeService.processGitHubRepo(userId, url);
       } else {
-        knowledge = await knowledgeService.captureFromUrl(userId, url as string);
+        knowledge = await knowledgeService.captureFromUrl(userId, url);
       }
-
-      res.status(201).json(knowledge);
+      return sendSuccess(res, knowledge, 'Knowledge captured', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -94,15 +86,13 @@ export const knowledgeController = {
     try {
       const userId = req.user!.userId;
       const { query } = req.body;
-
       if (!query) {
-        return res.status(400).json({ error: 'Research query required' });
+        return sendError(res, 'Query is required', 400);
       }
-
-      const result = await knowledgeService.research(userId, query as string);
-      res.status(201).json(result);
+      const result = await knowledgeService.research(userId, query);
+      return sendSuccess(res, result, 'Research complete', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -111,9 +101,9 @@ export const knowledgeController = {
     try {
       const userId = req.user!.userId;
       const knowledge = await knowledgeService.create(userId, req.body);
-      res.status(201).json(knowledge);
+      return sendSuccess(res, knowledge, 'Knowledge item created', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -121,11 +111,11 @@ export const knowledgeController = {
   async update(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      const knowledge = await knowledgeService.update(id as string, userId, req.body);
-      res.json(knowledge);
+      const id = req.params.id as string;
+      const knowledge = await knowledgeService.update(id, userId, req.body);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -133,11 +123,11 @@ export const knowledgeController = {
   async delete(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      await knowledgeService.delete(id as string, userId);
-      res.status(204).send();
+      const id = req.params.id as string;
+      await knowledgeService.delete(id, userId);
+      return sendSuccess(res, null, 'Knowledge item deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -145,12 +135,12 @@ export const knowledgeController = {
   async linkToDsa(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { topics } = req.body;
-      const knowledge = await knowledgeService.linkToDsaTopic(id as string, userId, topics);
-      res.json(knowledge);
+      const knowledge = await knowledgeService.linkToDsaTopic(id, userId, topics);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -158,12 +148,12 @@ export const knowledgeController = {
   async linkToProjects(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { projectIds } = req.body;
-      const knowledge = await knowledgeService.linkToProjects(id as string, userId, projectIds);
-      res.json(knowledge);
+      const knowledge = await knowledgeService.linkToProjects(id, userId, projectIds);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -171,12 +161,12 @@ export const knowledgeController = {
   async linkToQuestions(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { questionIds } = req.body;
-      const knowledge = await knowledgeService.linkToQuestions(id as string, userId, questionIds);
-      res.json(knowledge);
+      const knowledge = await knowledgeService.linkToQuestions(id, userId, questionIds);
+      return sendSuccess(res, knowledge);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -184,11 +174,11 @@ export const knowledgeController = {
   async saveToNotes(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      const note = await knowledgeService.saveToNotes(id as string, userId);
-      res.status(201).json(note);
+      const id = req.params.id as string;
+      const note = await knowledgeService.saveToNotes(id, userId);
+      return sendSuccess(res, note, 'Saved to notes', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   }
 };

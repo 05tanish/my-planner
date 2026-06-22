@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { projectService } from './projects.service';
+import { sendSuccess, sendError } from '../../utils/response';
 
 export const projectController = {
   // GET /api/projects
@@ -9,9 +10,9 @@ export const projectController = {
       const status = req.query.status as any;
 
       const projects = await projectService.getUserProjects(userId, status);
-      res.json(projects);
+      return sendSuccess(res, projects);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -20,9 +21,9 @@ export const projectController = {
     try {
       const userId = req.user!.userId;
       const stats = await projectService.getProjectStats(userId);
-      res.json(stats);
+      return sendSuccess(res, stats);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -34,12 +35,12 @@ export const projectController = {
 
       const project = await projectService.getProject(id as string, userId);
       if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+        return sendError(res, 'Project not found', 404);
       }
 
-      res.json(project);
+      return sendSuccess(res, project);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -48,9 +49,9 @@ export const projectController = {
     try {
       const userId = req.user!.userId;
       const project = await projectService.createProject(userId, req.body);
-      res.status(201).json(project);
+      return sendSuccess(res, project, 'Project created', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -61,9 +62,9 @@ export const projectController = {
       const { id } = req.params;
 
       const project = await projectService.updateProject(id as string, userId, req.body);
-      res.json(project);
+      return sendSuccess(res, project);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -74,9 +75,9 @@ export const projectController = {
       const { id } = req.params;
 
       await projectService.deleteProject(id as string, userId);
-      res.status(204).send();
+      return sendSuccess(res, null, 'Project deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -91,9 +92,9 @@ export const projectController = {
       // Update project progress
       await projectService.updateProjectProgress(id as string, userId);
       
-      res.status(201).json(feature);
+      return sendSuccess(res, feature, 'Feature added', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -111,9 +112,9 @@ export const projectController = {
         await projectService.updateProjectProgress(projectId, userId);
       }
       
-      res.json(feature);
+      return sendSuccess(res, feature);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -124,9 +125,9 @@ export const projectController = {
       const { featureId } = req.params;
 
       await projectService.deleteFeature(featureId as string, userId);
-      res.status(204).send();
+      return sendSuccess(res, null, 'Feature deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -137,9 +138,9 @@ export const projectController = {
       const { id } = req.params;
 
       const project = await projectService.updateProjectProgress(id as string, userId);
-      res.json(project);
+      return sendSuccess(res, project);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   }
 };

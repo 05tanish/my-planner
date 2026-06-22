@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
 import {
   FileText, Search, Plus, Star, Pin, Archive, Trash2, Folder, Tag, Save,
   ArrowLeft, Loader2, Upload, Filter

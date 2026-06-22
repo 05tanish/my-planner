@@ -56,14 +56,14 @@ export default function KnowledgePage() {
   const fetchKnowledge = async () => {
     try {
       const res = await api.get('/knowledge');
-      setKnowledge(res.data);
+      setKnowledge(res.data.data);
     } catch { toast.error('Failed to load knowledge'); }
   };
 
   const fetchStats = async () => {
     try {
       const res = await api.get('/knowledge/stats');
-      setStats(res.data);
+      setStats(res.data.data);
     } catch { /* silent */ }
   };
 
@@ -96,7 +96,7 @@ export default function KnowledgePage() {
     setResearchResult(null);
     try {
       const res = await api.post('/knowledge/research', { query: researchQuery });
-      setResearchResult(res.data);
+      setResearchResult(res.data.data);
       toast.success('Research complete — saved to knowledge base');
       fetchKnowledge();
       fetchStats();
