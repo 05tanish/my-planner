@@ -5,6 +5,11 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Fix 'process is not defined' from packages like react-grid-layout
+    'process.env': {},
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -15,10 +20,11 @@ export default defineConfig({
     host: true, // Allow external access
     proxy: {
       '/api': {
-        target: 'https://personal-place-backend.vercel.app',
+        target: 'http://localhost:4000',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       }
     }
   }
 })
+

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import RGL, { WidthProvider } from 'react-grid-layout/legacy';
 import {
-  Code2, CalendarCheck, GraduationCap,
+  Code2, CalendarCheck,
   Bell, Target, Briefcase, FileText, TrendingUp, CheckCircle2,
   Clock, AlertCircle, Flame, Loader2, Edit2, Check, RotateCcw, Eye, EyeOff
 } from 'lucide-react';
@@ -11,6 +11,9 @@ import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
+} from 'recharts';
 
 // Import react-grid-layout styles
 import 'react-grid-layout/css/styles.css';
@@ -183,34 +186,43 @@ function GitHubWidget({ data, isEditing }: { data: DashStats['github']; isEditin
   );
 }
 
-function LearningWidget({ data, isEditing }: { data: DashStats['learning']; isEditing?: boolean }) {
-  const hours = Math.floor(data.minutesToday / 60);
-  const mins = data.minutesToday % 60;
-  const targetMins = 240; // 4 hours
-  const pct = Math.min((data.minutesToday / targetMins) * 100, 100);
-
+function MilestonesWidget({ data, isEditing }: { data: DashStats; isEditing?: boolean }) {
+  const milestones = [
+    { label: 'Tasks Completed', value: data.tasks.completedToday, target: Math.max(data.tasks.dueToday, 3), icon: '✅' },
+    { label: 'DSA Problems', value: data.dsa.totalSolved % 10, target: 10, icon: '🧩', note: `${data.dsa.totalSolved} total` },
+    { label: 'Commits Today', value: data.github?.todayCommits || 0, target: 3, icon: '🔀' },
+    { label: 'Books Reading', value: data.books.count, target: 2, icon: '📖' },
+  ];
   return (
-    <Widget title="Learning Today" icon={GraduationCap} isEditing={isEditing}>
-      <div className="space-y-3 text-center">
-        <div>
-          <p className="text-3xl font-bold text-foreground tabular-nums">
-            {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`}
-          </p>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Focus hours logged today</p>
-        </div>
-        <div className="space-y-1">
-          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="flex justify-between text-[9px] text-muted-foreground px-0.5">
-            <span>Goal: 4 hours</span>
-            <span>{Math.round(pct)}%</span>
-          </div>
-        </div>
+    <Widget title="Daily Milestones" icon={TrendingUp} isEditing={isEditing}>
+      <div className="space-y-2.5">
+        {milestones.map(m => {
+          const pct = Math.min((m.value / Math.max(m.target, 1)) * 100, 100);
+          return (
+            <div key={m.label} className="space-y-0.5">
+              <div className="flex justify-between items-baseline text-[10px]">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <span>{m.icon}</span> {m.label}
+                  {m.note && <span className="text-muted-foreground/60">({m.note})</span>}
+                </span>
+                <span className={cn('font-semibold tabular-nums', pct >= 100 ? 'text-emerald-400' : 'text-foreground')}>
+                  {m.value}/{m.target}
+                </span>
+              </div>
+              <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full transition-all duration-500', pct >= 100 ? 'bg-emerald-400' : 'bg-primary')}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Widget>
   );
 }
+
 
 function RevisionWidget({ data, isEditing }: { data: DashStats['dsa']; isEditing?: boolean }) {
   return (
@@ -246,24 +258,49 @@ function RemindersWidget({ data, isEditing }: { data: DashStats['reminders']; is
 }
 
 function PlacementWidget({ isEditing }: { isEditing?: boolean }) {
-  const categories = [
-    { name: 'DBMS', progress: 65 },
-    { name: 'Operating Systems', progress: 45 },
-    { name: 'Computer Networks', progress: 50 },
-    { name: 'System Design', progress: 30 }
-  ];
+  const [topics, setTopics] = useState<{ name: string; progress: number }[]>([]);
+
+  useEffect(() => {
+    api.get('/placement/topics')
+      .then(res => {
+        const data: any[] = res.data?.data || [];
+        // Aggregate progress per category from topic list
+        const catMap: Record<string, { total: number; done: number }> = {};
+        data.forEach((t: any) => {
+          const cat = t.category || 'General';
+          if (!catMap[cat]) catMap[cat] = { total: 0, done: 0 };
+          catMap[cat].total += 1;
+          if (t.status === 'DONE') catMap[cat].done += 1;
+        });
+        setTopics(Object.entries(catMap).map(([name, v]) => ({
+          name,
+          progress: v.total > 0 ? Math.round((v.done / v.total) * 100) : 0,
+        })).slice(0, 4));
+      })
+      .catch(() => {
+        // Fallback to placeholder if API fails
+        setTopics([
+          { name: 'DBMS', progress: 0 },
+          { name: 'OS', progress: 0 },
+          { name: 'Networks', progress: 0 },
+          { name: 'System Design', progress: 0 },
+        ]);
+      });
+  }, []);
 
   return (
     <Widget title="Placement Prep" icon={Target} isEditing={isEditing}>
       <div className="space-y-1.5 py-1">
-        {categories.map((c) => (
+        {topics.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground text-center py-4">Loading...</p>
+        ) : topics.map((c) => (
           <div key={c.name} className="space-y-0.5">
             <div className="flex justify-between text-[9px] text-muted-foreground font-medium">
               <span>{c.name}</span>
               <span>{c.progress}%</span>
             </div>
             <div className="h-1 bg-secondary rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: `${c.progress}%` }} />
+              <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${c.progress}%` }} />
             </div>
           </div>
         ))}
@@ -290,18 +327,70 @@ function JobsWidget({ data, isEditing }: { data: DashStats['jobs']; isEditing?: 
 
 function NotesWidget({ data, isEditing }: { data: DashStats['notes']; isEditing?: boolean }) {
   return (
-    <Widget title="Notes Summary" icon={FileText} isEditing={isEditing}>
-      <div className="flex items-center justify-around text-center h-full py-2">
-        <div>
-          <p className="text-2xl font-bold text-foreground tabular-nums">{data.total}</p>
-          <p className="text-[10px] text-muted-foreground">Total Notes</p>
+    <Widget title="Notes & Ideas" icon={FileText} isEditing={isEditing}>
+      <div className="flex items-center justify-around py-2 h-full">
+        <div className="text-center">
+          <p className="text-2xl font-bold text-foreground tabular-nums">{data.pinned}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-1">Pinned</p>
         </div>
         <div className="h-8 w-px bg-border" />
-        <div>
-          <p className="text-2xl font-bold text-primary tabular-nums">{data.pinned}</p>
-          <p className="text-[10px] text-muted-foreground">Pinned Notes</p>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-foreground tabular-nums">{data.total}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-1">Total</p>
         </div>
       </div>
+    </Widget>
+  );
+}
+
+function ActivityChartWidget({ isEditing }: { isEditing?: boolean }) {
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSnapshots = async () => {
+      try {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        const params = {
+          startDate: thirtyDaysAgo.toISOString().split('T')[0],
+          endDate: today.toISOString().split('T')[0],
+        };
+        const res = await api.get('/analytics/snapshots', { params });
+        const data = res.data.data || [];
+        setSnapshots(data.map((snap: any) => ({
+          dateStr: new Date(snap.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+          'DSA Solved': snap.dsaSolved,
+          'DSA Revisions': snap.revisionsCount,
+          'GitHub Commits': snap.githubCommits,
+          'Tasks Completed': snap.tasksCompleted,
+        })));
+      } catch (err) {
+        console.error('Failed to fetch snapshots for dashboard');
+      }
+    };
+    fetchSnapshots();
+  }, []);
+
+  return (
+    <Widget title="Daily Activity (30 Days)" icon={TrendingUp} isEditing={isEditing}>
+      {snapshots.length === 0 ? (
+        <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Loading...</div>
+      ) : (
+        <div className="h-full w-full min-h-[120px] text-[10px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={snapshots}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2a2d36" vertical={false} />
+              <XAxis dataKey="dateStr" stroke="#718096" tick={{fontSize: 9}} tickLine={false} axisLine={false} />
+              <YAxis stroke="#718096" tick={{fontSize: 9}} tickLine={false} axisLine={false} width={25} />
+              <RechartsTooltip contentStyle={{ backgroundColor: '#171923', borderColor: '#2a2d36', fontSize: '10px' }} />
+              <Line type="monotone" dataKey="Tasks Completed" stroke="#6366f1" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="DSA Solved" stroke="#ec4899" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="GitHub Commits" stroke="#10b981" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </Widget>
   );
 }
@@ -415,12 +504,13 @@ export function DashboardPage() {
       case 'tasks': return <TasksWidget data={stats.tasks} isEditing={isEditing} />;
       case 'dsa': return <DSAWidget data={stats.dsa} isEditing={isEditing} />;
       case 'github': return <GitHubWidget data={stats.github} isEditing={isEditing} />;
-      case 'learning': return <LearningWidget data={stats.learning} isEditing={isEditing} />;
+      case 'milestones': return <MilestonesWidget data={stats} isEditing={isEditing} />;
       case 'revision': return <RevisionWidget data={stats.dsa} isEditing={isEditing} />;
       case 'reminders': return <RemindersWidget data={stats.reminders} isEditing={isEditing} />;
       case 'placement': return <PlacementWidget isEditing={isEditing} />;
       case 'jobs': return <JobsWidget data={stats.jobs} isEditing={isEditing} />;
       case 'notes': return <NotesWidget data={stats.notes} isEditing={isEditing} />;
+      case 'activityChart': return <ActivityChartWidget isEditing={isEditing} />;
       default: return null;
     }
   };

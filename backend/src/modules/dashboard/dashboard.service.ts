@@ -8,7 +8,8 @@ const DEFAULT_WIDGETS = [
   { id: 'tasks', type: 'TODAY_TASKS', visible: true, config: {} },
   { id: 'dsa', type: 'DSA_PROGRESS', visible: true, config: {} },
   { id: 'github', type: 'GITHUB_STREAK', visible: true, config: {} },
-  { id: 'learning', type: 'LEARNING_HOURS', visible: true, config: {} },
+  { id: 'activityChart', type: 'ACTIVITY_CHART', visible: true, config: {} },
+  { id: 'milestones', type: 'DAILY_MILESTONES', visible: true, config: {} },
   { id: 'revision', type: 'REVISION_DUE', visible: true, config: {} },
   { id: 'reminders', type: 'REMINDERS', visible: true, config: {} },
   { id: 'placement', type: 'PLACEMENT_PROGRESS', visible: true, config: {} },
@@ -20,12 +21,13 @@ const DEFAULT_LAYOUT = [
   { i: 'tasks', x: 0, y: 0, w: 4, h: 4 },
   { i: 'dsa', x: 4, y: 0, w: 4, h: 4 },
   { i: 'github', x: 8, y: 0, w: 4, h: 4 },
-  { i: 'learning', x: 0, y: 4, w: 6, h: 4 },
-  { i: 'revision', x: 6, y: 4, w: 6, h: 4 },
-  { i: 'reminders', x: 0, y: 8, w: 4, h: 4 },
-  { i: 'placement', x: 4, y: 8, w: 4, h: 4 },
-  { i: 'jobs', x: 8, y: 8, w: 4, h: 4 },
-  { i: 'notes', x: 0, y: 12, w: 12, h: 4 },
+  { i: 'activityChart', x: 0, y: 4, w: 12, h: 5 },
+  { i: 'milestones', x: 0, y: 9, w: 6, h: 4 },
+  { i: 'revision', x: 6, y: 9, w: 6, h: 4 },
+  { i: 'reminders', x: 0, y: 13, w: 4, h: 4 },
+  { i: 'placement', x: 4, y: 13, w: 4, h: 4 },
+  { i: 'jobs', x: 8, y: 13, w: 4, h: 4 },
+  { i: 'notes', x: 0, y: 17, w: 12, h: 4 },
 ];
 
 export const getLayout = async (userId: string) => {
@@ -141,13 +143,7 @@ export const getStats = async (userId: string) => {
       },
     }),
     getStreakStats(userId),
-    prisma.learningEntry.aggregate({
-      where: {
-        userId,
-        createdAt: { gte: start, lte: end },
-      },
-      _sum: { durationMin: true },
-    }),
+    Promise.resolve({ _sum: { durationMin: 0 } }), // Removed Learning Hub
     prisma.job.findMany({
       where: { userId },
       select: { status: true },
@@ -169,6 +165,12 @@ export const getStats = async (userId: string) => {
 
   const learningMinutesToday = learningAgg._sum.durationMin || 0;
 
+  // Convert jobs array to a { STATUS: count } map for the frontend widget
+  const jobsMap: Record<string, number> = {};
+  for (const job of jobs) {
+    jobsMap[job.status] = (jobsMap[job.status] || 0) + 1;
+  }
+
   const statsResult = {
     tasks: {
       dueToday: tasksDueToday,
@@ -183,7 +185,7 @@ export const getStats = async (userId: string) => {
     learning: {
       minutesToday: learningMinutesToday,
     },
-    jobs: jobs,
+    jobs: jobsMap,
     books: {
       reading: readingBooks,
       count: readingBooks.length,
