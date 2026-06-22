@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Component, type ReactNode } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute, AuthRoute } from './guards';
 
@@ -42,8 +42,62 @@ function PageLoader() {
   );
 }
 
+/**
+ * Catches "Failed to fetch dynamically imported module" errors that happen
+ * when Vercel deploys a new build — old chunk hashes 404. Auto-reloads once.
+ */
+class ChunkErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    const isChunkError =
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError';
+
+    if (isChunkError) {
+      const reloaded = sessionStorage.getItem('chunk_reload');
+      if (!reloaded) {
+        sessionStorage.setItem('chunk_reload', '1');
+        window.location.reload();
+      }
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center space-y-4 p-8">
+            <p className="text-lg font-semibold text-foreground">New version available</p>
+            <p className="text-sm text-muted-foreground">The app was updated. Reloading...</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-sm text-primary underline"
+            >
+              Click here if it doesn't reload automatically
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function AppRouter() {
   return (
+    <ChunkErrorBoundary>
     <Routes>
       {/* Auth routes — redirect to / if already logged in */}
       <Route element={<AuthRoute />}>
@@ -116,5 +170,6 @@ export function AppRouter() {
         } />
       </Route>
     </Routes>
+    </ChunkErrorBoundary>
   );
 }
