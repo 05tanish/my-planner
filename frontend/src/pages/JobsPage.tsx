@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Plus, Search, ExternalLink, Calendar, DollarSign, MapPin,
-  Trash2, Edit2, Loader2
+  Trash2, Edit2, Loader2, FileText, Upload, Star, X
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Job, JobStatus } from '../types';
@@ -15,9 +15,56 @@ import {
 } from '../components/ui/dialog';
 import { cn } from '../lib/utils';
 
+interface Resume {
+  id: string; name: string; fileUrl: string; fileName: string;
+  fileSize?: number; notes?: string; isDefault: boolean; createdAt: string;
+}
+
+
 export function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Resume Library state
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [resumeTab, setResumeTab] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [resumeName, setResumeName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchResumes = async () => {
+    try { const r = await api.get('/jobs/resumes'); setResumes(r.data.data || []); }
+    catch (_) {}
+  };
+
+  useEffect(() => { fetchResumes(); }, []);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingResume(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('name', resumeName || file.name);
+      await api.post('/jobs/resumes', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success('Resume uploaded');
+      setResumeName('');
+      fetchResumes();
+    } catch { toast.error('Upload failed'); }
+    finally { setUploadingResume(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
+  const handleDeleteResume = async (id: string) => {
+    if (!confirm('Delete this resume?')) return;
+    try { await api.delete(`/jobs/resumes/${id}`); toast.success('Resume deleted'); fetchResumes(); }
+    catch { toast.error('Failed to delete resume'); }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try { await api.patch(`/jobs/resumes/${id}`, { isDefault: true }); fetchResumes(); }
+    catch { toast.error('Failed to set default'); }
+  };
 
   // Search
   const [search, setSearch] = useState('');
@@ -156,10 +203,89 @@ export function JobsPage() {
           <h2 className="text-xl font-semibold text-foreground">Job Applications</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Track your placement journey, offers, and interviewing pipelines</p>
         </div>
-        <Button onClick={() => handleOpenAddModal('APPLIED')} className="w-full sm:w-auto bg-primary text-primary-foreground">
-          <Plus className="w-4 h-4 mr-2" /> Log Application
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={resumeTab ? 'default' : 'outline'}
+            onClick={() => setResumeTab(v => !v)}
+            className={cn('sm:w-auto', resumeTab && 'bg-primary text-primary-foreground')}
+          >
+            <FileText className="w-4 h-4 mr-2" /> Resume Library {resumes.length > 0 && `(${resumes.length})`}
+          </Button>
+          <Button onClick={() => handleOpenAddModal('APPLIED')} className="w-full sm:w-auto bg-primary text-primary-foreground">
+            <Plus className="w-4 h-4 mr-2" /> Log Application
+          </Button>
+        </div>
       </div>
+
+      {/* Resume Library Panel */}
+      {resumeTab && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between border-b border-border/30 pb-3">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" /> Resume Library
+            </h3>
+            <button onClick={() => setResumeTab(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Upload Section */}
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Resume Label</label>
+              <Input value={resumeName} onChange={e => setResumeName(e.target.value)} placeholder="e.g. SWE Internship Resume 2025" className="bg-secondary/30" />
+            </div>
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploadingResume} className="bg-primary text-primary-foreground shrink-0">
+              {uploadingResume ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+              Upload PDF
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} />
+          </div>
+
+          {/* Resume List */}
+          {resumes.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
+              No resumes uploaded yet. Upload your first resume above.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {resumes.map(r => (
+                <div key={r.id} className={cn(
+                  'bg-secondary/30 border rounded-lg p-3 flex flex-col gap-2 group transition-colors',
+                  r.isDefault ? 'border-primary/50' : 'border-border'
+                )}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-xs font-semibold text-foreground truncate">{r.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <button onClick={() => handleSetDefault(r.id)} title="Set as default" className="p-1 hover:bg-amber-500/10 rounded text-muted-foreground hover:text-amber-400">
+                        <Star className={cn('w-3 h-3', r.isDefault && 'fill-amber-400 text-amber-400')} />
+                      </button>
+                      <a href={r.fileUrl} target="_blank" rel="noreferrer" className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <button onClick={() => handleDeleteResume(r.id)} className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span>{r.fileName}</span>
+                    {r.fileSize && <span>· {(r.fileSize / 1024).toFixed(0)} KB</span>}
+                  </div>
+                  {r.isDefault && (
+                    <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20 w-fit">
+                      <Star className="w-2.5 h-2.5 mr-1 fill-primary" /> Default Resume
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search Filter */}
       <div className="flex gap-3 items-center bg-card border border-border p-4 rounded-lg max-w-md">

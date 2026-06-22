@@ -71,7 +71,7 @@ export default function InterviewsPage() {
     try {
       setLoading(true);
       const res = await api.get('/interviews');
-      setQuestions(res.data);
+      setQuestions(res.data.data);
     } catch { toast.error('Failed to load questions'); }
     finally { setLoading(false); }
   };
@@ -79,7 +79,7 @@ export default function InterviewsPage() {
   const fetchStats = async () => {
     try {
       const res = await api.get('/interviews/stats');
-      setStats(res.data);
+      setStats(res.data.data);
     } catch { /* silent */ }
   };
 

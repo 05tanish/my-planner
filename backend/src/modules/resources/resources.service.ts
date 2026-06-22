@@ -155,3 +155,24 @@ export const removeResource = async (userId: string, id: string) => {
     where: { id },
   });
 };
+
+// Bulk update sortOrder for resources (drag-and-drop)
+export const reorderResources = async (userId: string, items: { id: string; sortOrder: number }[]) => {
+  await prisma.$transaction(
+    items.map(({ id, sortOrder }) =>
+      prisma.resource.updateMany({ where: { id, userId }, data: { sortOrder } })
+    )
+  );
+  return { updated: items.length };
+};
+
+// Bulk update sortOrder for folders (drag-and-drop)
+export const reorderFolders = async (userId: string, items: { id: string; sortOrder: number }[]) => {
+  await prisma.$transaction(
+    items.map(({ id, sortOrder }) =>
+      prisma.resourceFolder.updateMany({ where: { id, userId }, data: { sortOrder } })
+    )
+  );
+  return { updated: items.length };
+};
+

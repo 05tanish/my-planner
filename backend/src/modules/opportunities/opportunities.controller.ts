@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { sendSuccess, sendError } from '../../utils/response';
 import { opportunityService } from './opportunities.service';
 
 export const opportunityController = {
@@ -10,9 +11,9 @@ export const opportunityController = {
         status: req.query.status as any
       };
       const opportunities = await opportunityService.getAll(userId, filters);
-      res.json(opportunities);
+      return sendSuccess(res, opportunities);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -20,9 +21,9 @@ export const opportunityController = {
     try {
       const userId = req.user!.userId;
       const stats = await opportunityService.getStats(userId);
-      res.json(stats);
+      return sendSuccess(res, stats);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -31,23 +32,23 @@ export const opportunityController = {
       const userId = req.user!.userId;
       const days = parseInt(req.query.days as string) || 30;
       const opportunities = await opportunityService.getUpcoming(userId, days);
-      res.json(opportunities);
+      return sendSuccess(res, opportunities);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async getOne(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      const opportunity = await opportunityService.getOne(id as string, userId);
+      const id = req.params.id as string;
+      const opportunity = await opportunityService.getOne(id, userId);
       if (!opportunity) {
-        return res.status(404).json({ error: 'Opportunity not found' });
+        return sendError(res, 'Opportunity not found', 404);
       }
-      res.json(opportunity);
+      return sendSuccess(res, opportunity);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -55,31 +56,31 @@ export const opportunityController = {
     try {
       const userId = req.user!.userId;
       const opportunity = await opportunityService.create(userId, req.body);
-      res.status(201).json(opportunity);
+      return sendSuccess(res, opportunity, 'Opportunity created', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async update(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      const opportunity = await opportunityService.update(id as string, userId, req.body);
-      res.json(opportunity);
+      const id = req.params.id as string;
+      const opportunity = await opportunityService.update(id, userId, req.body);
+      return sendSuccess(res, opportunity);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async delete(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-      await opportunityService.delete(id as string, userId);
-      res.status(204).send();
+      const id = req.params.id as string;
+      await opportunityService.delete(id, userId);
+      return sendSuccess(res, null, 'Opportunity deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   }
 };

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { sendSuccess, sendError } from '../../utils/response';
 import { interviewService } from './interviews.service';
 
 export const interviewController = {
@@ -13,11 +14,10 @@ export const interviewController = {
         tags: req.query.tags ? String(req.query.tags).split(',') : undefined,
         favorite: req.query.favorite === 'true'
       };
-
       const questions = await interviewService.getQuestions(userId, filters);
-      res.json(questions);
+      return sendSuccess(res, questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -26,9 +26,9 @@ export const interviewController = {
     try {
       const userId = req.user!.userId;
       const stats = await interviewService.getStats(userId);
-      res.json(stats);
+      return sendSuccess(res, stats);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -37,9 +37,9 @@ export const interviewController = {
     try {
       const userId = req.user!.userId;
       const questions = await interviewService.getDueForRevision(userId);
-      res.json(questions);
+      return sendSuccess(res, questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -48,15 +48,13 @@ export const interviewController = {
     try {
       const userId = req.user!.userId;
       const query = req.query.q as string;
-
       if (!query) {
-        return res.status(400).json({ error: 'Search query required' });
+        return sendError(res, 'Search query required', 400);
       }
-
-      const questions = await interviewService.searchQuestions(userId, query as string);
-      res.json(questions);
+      const questions = await interviewService.searchQuestions(userId, query);
+      return sendSuccess(res, questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -64,16 +62,14 @@ export const interviewController = {
   async getOne(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-
-      const question = await interviewService.getQuestion(id as string, userId);
+      const id = req.params.id as string;
+      const question = await interviewService.getQuestion(id, userId);
       if (!question) {
-        return res.status(404).json({ error: 'Question not found' });
+        return sendError(res, 'Question not found', 404);
       }
-
-      res.json(question);
+      return sendSuccess(res, question);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -82,9 +78,9 @@ export const interviewController = {
     try {
       const userId = req.user!.userId;
       const question = await interviewService.createQuestion(userId, req.body);
-      res.status(201).json(question);
+      return sendSuccess(res, question, 'Question created', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -92,12 +88,11 @@ export const interviewController = {
   async update(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-
-      const question = await interviewService.updateQuestion(id as string, userId, req.body);
-      res.json(question);
+      const id = req.params.id as string;
+      const question = await interviewService.updateQuestion(id, userId, req.body);
+      return sendSuccess(res, question);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -105,12 +100,11 @@ export const interviewController = {
   async delete(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-
-      await interviewService.deleteQuestion(id as string, userId);
-      res.status(204).send();
+      const id = req.params.id as string;
+      await interviewService.deleteQuestion(id, userId);
+      return sendSuccess(res, null, 'Question deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -118,12 +112,11 @@ export const interviewController = {
   async markRevised(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-
-      const question = await interviewService.markRevised(id as string, userId);
-      res.json(question);
+      const id = req.params.id as string;
+      const question = await interviewService.markRevised(id, userId);
+      return sendSuccess(res, question);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -131,12 +124,11 @@ export const interviewController = {
   async toggleFavorite(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
-
-      const question = await interviewService.toggleFavorite(id as string, userId);
-      res.json(question);
+      const id = req.params.id as string;
+      const question = await interviewService.toggleFavorite(id, userId);
+      return sendSuccess(res, question);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   }
 };

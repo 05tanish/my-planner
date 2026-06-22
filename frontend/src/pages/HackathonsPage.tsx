@@ -70,14 +70,14 @@ export default function HackathonsPage() {
   const fetchAll = async () => {
     try {
       const res = await api.get('/hackathons');
-      setHackathons(res.data);
+      setHackathons(res.data.data);
     } catch { toast.error('Failed to load hackathons'); }
   };
 
   const fetchStats = async () => {
     try {
       const res = await api.get('/hackathons/stats');
-      setStats(res.data);
+      setStats(res.data.data);
     } catch { /* silent */ }
   };
 

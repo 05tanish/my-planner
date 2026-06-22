@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { sendSuccess, sendError } from '../../utils/response';
 import { hackathonService } from './hackathons.service';
 
 export const hackathonController = {
@@ -7,9 +8,9 @@ export const hackathonController = {
       const userId = req.user!.userId;
       const status = req.query.status as any;
       const hackathons = await hackathonService.getAll(userId, status);
-      res.json(hackathons);
+      return sendSuccess(res, hackathons);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -17,9 +18,9 @@ export const hackathonController = {
     try {
       const userId = req.user!.userId;
       const stats = await hackathonService.getStats(userId);
-      res.json(stats);
+      return sendSuccess(res, stats);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -27,23 +28,23 @@ export const hackathonController = {
     try {
       const userId = req.user!.userId;
       const hackathons = await hackathonService.getUpcoming(userId);
-      res.json(hackathons);
+      return sendSuccess(res, hackathons);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async getOne(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const hackathon = await hackathonService.getOne(id as string, userId);
       if (!hackathon) {
-        return res.status(404).json({ error: 'Hackathon not found' });
+        return sendError(res, 'Hackathon not found', 404);
       }
-      res.json(hackathon);
+      return sendSuccess(res, hackathon);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
@@ -51,31 +52,31 @@ export const hackathonController = {
     try {
       const userId = req.user!.userId;
       const hackathon = await hackathonService.create(userId, req.body);
-      res.status(201).json(hackathon);
+      return sendSuccess(res, hackathon, 'Hackathon created', 201);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async update(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const hackathon = await hackathonService.update(id as string, userId, req.body);
-      res.json(hackathon);
+      return sendSuccess(res, hackathon);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   },
 
   async delete(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       await hackathonService.delete(id as string, userId);
-      res.status(204).send();
+      return sendSuccess(res, null, 'Hackathon deleted');
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return sendError(res, error.message, 500);
     }
   }
 };

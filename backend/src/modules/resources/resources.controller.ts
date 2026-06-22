@@ -85,3 +85,16 @@ export const removeResource = async (req: AuthRequest, res: Response, next: Next
     next(e);
   }
 };
+
+export const reorderResources = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    return sendSuccess(res, await service.reorderResources(req.user!.userId, req.body.items), 'Resources reordered');
+  } catch (e) { next(e); }
+};
+
+export const reorderFolders = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    return sendSuccess(res, await service.reorderFolders(req.user!.userId, req.body.items), 'Folders reordered');
+  } catch (e) { next(e); }
+};
+
