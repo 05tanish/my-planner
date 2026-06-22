@@ -135,3 +135,54 @@ export const getStreakStats = async (userId: string) => {
     hasCommittedToday: (todayActivity?.commits || 0) > 0,
   };
 };
+
+/**
+ * Sync recent commits from GitHub public API for a user's githubUsername
+ */
+export const syncFromGitHubAPI = async (userId: string) => {
+  const profile = await prisma.profile.findUnique({
+    where: { userId },
+    select: { githubUsername: true },
+  });
+
+  if (!profile?.githubUsername) {
+    throw new AppError('No GitHub username set in profile. Please update your profile first.', 400);
+  }
+
+  const username = profile.githubUsername;
+  const res = await fetch(
+    `https://api.github.com/users/${encodeURIComponent(username)}/events/public?per_page=100`,
+    { headers: { 'User-Agent': 'DevOS-App/1.0', Accept: 'application/vnd.github.v3+json' } }
+  );
+
+  if (!res.ok) {
+    throw new AppError(`GitHub API returned ${res.status}. Check if username "${username}" is correct.`, 502);
+  }
+
+  const events = (await res.json()) as any[];
+
+  // Group PushEvents by date
+  const dayMap = new Map<string, { commits: number; repos: Set<string> }>();
+
+  for (const event of events) {
+    if (event.type !== 'PushEvent') continue;
+    const dateKey = format(startOfDay(new Date(event.created_at)), 'yyyy-MM-dd');
+    const existing = dayMap.get(dateKey) || { commits: 0, repos: new Set<string>() };
+    existing.commits += (event.payload?.commits?.length || 1);
+    existing.repos.add(event.repo?.name?.replace(`${username}/`, '') || 'unknown');
+    dayMap.set(dateKey, existing);
+  }
+
+  let synced = 0;
+  for (const [dateKey, { commits, repos }] of dayMap.entries()) {
+    const targetDate = startOfDay(new Date(dateKey));
+    await prisma.githubActivity.upsert({
+      where: { userId_date: { userId, date: targetDate } },
+      create: { userId, date: targetDate, commits, repositories: Array.from(repos) },
+      update: { commits, repositories: Array.from(repos) },
+    });
+    synced++;
+  }
+
+  return { synced, username, daysWithActivity: synced };
+};

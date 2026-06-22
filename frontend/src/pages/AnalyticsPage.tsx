@@ -90,7 +90,6 @@ export function AnalyticsPage() {
     dateStr: new Date(snap.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
     'DSA Solved': snap.dsaSolved,
     'DSA Revisions': snap.revisionsCount,
-    'Learning Hub (min)': snap.learningMinutes,
     'GitHub Commits': snap.githubCommits,
     'Tasks Completed': snap.tasksCompleted,
     'Jobs Applied': snap.jobsApplied,

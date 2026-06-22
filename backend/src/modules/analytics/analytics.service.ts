@@ -83,17 +83,8 @@ export const generateDailySnapshot = async (userId: string, date: Date) => {
     },
   });
 
-  // 3. Learning minutes today
-  const learningAgg = await prisma.learningEntry.aggregate({
-    where: {
-      userId,
-      createdAt: { gte: start, lte: end },
-    },
-    _sum: {
-      durationMin: true,
-    },
-  });
-  const learningMinutes = learningAgg._sum.durationMin || 0;
+  // 3. Learning minutes today (Removed Learning Hub)
+  const learningMinutes = 0;
 
   // 4. Github commits today
   const githubActivity = await prisma.githubActivity.findUnique({

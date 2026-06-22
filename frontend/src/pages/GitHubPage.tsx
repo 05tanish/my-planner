@@ -89,12 +89,34 @@ export function GitHubPage() {
     toast.info(`Editing details for ${new Date(act.date).toLocaleDateString()}`);
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleAutoSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await api.post('/github/sync');
+      toast.success(res.data.message || 'GitHub activity synced!');
+      fetchActivities();
+      fetchStats();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Sync failed — check your GitHub username in settings');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">GitHub Tracker</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Manually log daily commits, repositories, and features to maintain streak consistency</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">GitHub Tracker</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Log commits manually or sync automatically from your GitHub public activity</p>
+        </div>
+        <Button onClick={handleAutoSync} disabled={syncing} variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 shrink-0">
+          {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Github className="w-4 h-4 mr-2" />}
+          {syncing ? 'Syncing...' : 'Auto-Sync from GitHub'}
+        </Button>
       </div>
 
       {/* Streak Dashboard widgets */}

@@ -34,3 +34,13 @@ export const getStreakStats = async (req: AuthRequest, res: Response, next: Next
     next(e);
   }
 };
+
+export const syncFromGitHub = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await service.syncFromGitHubAPI(req.user!.userId);
+    return sendSuccess(res, result, `Synced ${result.synced} days of activity from GitHub for @${result.username}`);
+  } catch (e) {
+    next(e);
+  }
+};
+
