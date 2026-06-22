@@ -6,9 +6,16 @@ import { runHourlyReminderJob } from './hourlyReminder.job';
 import { startV2Jobs } from './v2Jobs';
 import { runDailyResetJob } from './dailyReset.job';
 import { runPlatformSyncJob } from './platformSync.job';
+import { runDatabaseCleanupJob } from './cleanup.job';
 
 export const initScheduler = () => {
   console.log('⏰ Initializing background job scheduler...');
+
+  // 0. Database Cleanup - Daily at 3:00 AM
+  cron.schedule('0 3 * * *', async () => {
+    console.log('⏰ Triggered Scheduled Task: Database Cleanup');
+    await runDatabaseCleanupJob();
+  });
 
   // 1. DSA Revision Check - Daily at 8:00 AM
   cron.schedule('0 8 * * *', async () => {

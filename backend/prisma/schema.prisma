@@ -42,7 +42,8 @@ model User {
   resourceFolders      ResourceFolder[]
   books                Book[]
   jobs                 Job[]
-  learningEntries      LearningEntry[]
+  resumes              Resume[]
+  learningEntries      LearningEntry[] // kept for migration compatibility — table will be emptied
   placementNotes       PlacementNote[]
   githubActivities     GithubActivity[]
   reminders            Reminder[]
@@ -280,6 +281,7 @@ model Task {
   actualTime    Int?         // in minutes (Phase 5)
   tags          String[]     // Phase 4
   completedAt   DateTime?    // Track completion time
+  sortOrder     Int          @default(0) // for drag-and-drop ordering
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -344,9 +346,33 @@ model Job {
   location    String?
   salary      String?
   notes       String?
+  resumeId    String?   // optional attached resume
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume      Resume?   @relation(fields: [resumeId], references: [id])
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// RESUME LIBRARY
+// ─────────────────────────────────────────────
+
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  fileUrl   String
+  fileName  String
+  fileSize  Int?
+  mimeType  String?  @default("application/pdf")
+  notes     String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs      Job[]
 
   @@index([userId])
 }
@@ -414,6 +440,7 @@ model ResourceFolder {
   userId    String
   name      String
   parentId  String?
+  sortOrder Int              @default(0)
   createdAt DateTime         @default(now())
   resources Resource[]
   children  ResourceFolder[] @relation("FolderHierarchy")
@@ -435,6 +462,7 @@ model Resource {
   description String?
   status      String          @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
   isFavorite  Boolean         @default(false)
+  sortOrder   Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)

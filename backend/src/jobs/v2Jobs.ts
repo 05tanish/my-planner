@@ -160,12 +160,7 @@ export const startWeeklyReview = () => {
               createdAt: { gte: weekStart, lte: weekEnd }
             }
           }),
-          prisma.learningEntry.count({
-            where: {
-              userId: user.id,
-              createdAt: { gte: weekStart, lte: weekEnd }
-            }
-          })
+          Promise.resolve(0) // Learning Hub removed
         ]);
 
         const totalCommits = commits.reduce((sum, c) => sum + c.commits, 0);
