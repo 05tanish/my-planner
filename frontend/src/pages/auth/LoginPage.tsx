@@ -23,8 +23,10 @@ export function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
-      const { token, user } = res.data.data;
-      setAuth(user, token);
+      const { user } = res.data.data;
+      // Cookie is set automatically by the backend (httpOnly)
+      // We only store user metadata in the store for UI
+      setAuth(user);
       toast.success('Welcome back!');
       navigate('/');
     } catch (err: any) {

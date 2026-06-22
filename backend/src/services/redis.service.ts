@@ -89,3 +89,41 @@ export const set = async (key: string, value: string, exSeconds?: number): Promi
 export const del = async (key: string): Promise<any> => {
   return exec(['DEL', key]);
 };
+
+/* ─── Session helpers ─────────────────────────────────────────────────── */
+
+const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
+const sessionKey = (token: string) => `session:${token}`;
+
+export interface SessionData {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+/**
+ * Store a user session in Redis (replaces Postgres session lookup on hot path)
+ */
+export const setSession = async (token: string, data: SessionData): Promise<void> => {
+  await set(sessionKey(token), JSON.stringify(data), SESSION_TTL);
+};
+
+/**
+ * Get session data from Redis. Returns null if not found / expired.
+ */
+export const getSession = async (token: string): Promise<SessionData | null> => {
+  const raw = await get(sessionKey(token));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as SessionData;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Delete a session from Redis (used on logout)
+ */
+export const deleteSession = async (token: string): Promise<void> => {
+  await del(sessionKey(token));
+};

@@ -25,7 +25,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       ...(process.env.NODE_ENV === 'development' ? { devToken: emailVerifyToken } : {}),
       userId: user.id,
     });
-  } catch (err) {
+  } catch (err: any) {
+    console.error('❌ User Registration Failed:', {
+      error: err.message,
+      stack: err.stack,
+      body: { ...req.body, password: '[REDACTED]' },
+    });
     next(err);
   }
 };
@@ -41,10 +46,22 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,       // Not accessible via JS — XSS-proof
+  secure: process.env.NODE_ENV === 'production', // HTTPS only in prod
+  sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  path: '/',
+};
+
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const dto = loginSchema.parse(req.body);
     const result = await authService.login(dto, req.headers['user-agent'], req.ip);
+    
+    // Set httpOnly cookie — browser sends it automatically, JS cannot read it
+    res.cookie('access_token', result.token, COOKIE_OPTIONS);
+    
     return sendSuccess(res, result, 'Login successful');
   } catch (err) {
     next(err);
@@ -53,8 +70,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const logout = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.slice(7);
+    // Extract token from header OR cookie
+    const token = req.headers.authorization?.slice(7) || req.cookies?.access_token;
     if (token) await authService.logout(token);
+    
+    // Clear the httpOnly cookie
+    res.clearCookie('access_token', { path: '/' });
+    
     return sendSuccess(res, null, 'Logged out successfully');
   } catch (err) {
     next(err);

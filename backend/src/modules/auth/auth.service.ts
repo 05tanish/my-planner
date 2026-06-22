@@ -4,6 +4,7 @@ import { hashPassword, comparePassword } from '../../utils/hash';
 import { signToken, generateRandomToken } from '../../utils/jwt';
 import { AppError } from '../../middleware/error.middleware';
 import { addDays } from 'date-fns';
+import * as redis from '../../services/redis.service';
 import type {
   RegisterDto,
   LoginDto,
@@ -94,15 +95,13 @@ export const login = async (
   const token = signToken({ userId: user.id, email: user.email });
   const expiresAt = addDays(new Date(), 7);
 
-  const session = await prisma.session.create({
-    data: {
-      userId: user.id,
-      token,
-      userAgent,
-      ip,
-      expiresAt,
-    },
+  // Store session in Postgres (for audit trail, device management, revocation)
+  await prisma.session.create({
+    data: { userId: user.id, token, userAgent, ip, expiresAt },
   });
+
+  // Cache session in Redis (fast auth path — avoids DB on every API call)
+  await redis.setSession(token, { userId: user.id, email: user.email, role: user.role });
 
   const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
 
@@ -119,6 +118,9 @@ export const login = async (
 };
 
 export const logout = async (token: string) => {
+  // Remove from Redis immediately (invalidates session on all servers)
+  await redis.deleteSession(token);
+  // Remove from Postgres too
   await prisma.session.deleteMany({ where: { token } });
 };
 
@@ -164,7 +166,9 @@ export const resetPassword = async (dto: ResetPasswordDto) => {
     },
   });
 
-  // Invalidate all sessions after password reset
+  // Invalidate all sessions after password reset (Postgres + Redis)
+  const sessions = await prisma.session.findMany({ where: { userId: user.id }, select: { token: true } });
+  await Promise.all(sessions.map(s => redis.deleteSession(s.token)));
   await prisma.session.deleteMany({ where: { userId: user.id } });
 };
 
@@ -181,6 +185,9 @@ export const changePassword = async (userId: string, dto: ChangePasswordDto) => 
     data: { password: hashedPassword },
   });
 
+  // Flush all sessions from Postgres + Redis
+  const sessions = await prisma.session.findMany({ where: { userId }, select: { token: true } });
+  await Promise.all(sessions.map(s => redis.deleteSession(s.token)));
   await prisma.session.deleteMany({ where: { userId } });
 };
 

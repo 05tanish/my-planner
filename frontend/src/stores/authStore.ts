@@ -1,35 +1,29 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { AuthUser } from '../types';
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setAuth: (user: AuthUser, token: string) => void;
+  setAuth: (user: AuthUser) => void;
   setUser: (user: AuthUser) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-      setAuth: (user, token) =>
-        set({ user, token, isAuthenticated: true, isLoading: false }),
-      setUser: (user) => set({ user }),
-      logout: () =>
-        set({ user: null, token: null, isAuthenticated: false }),
-      setLoading: (isLoading) => set({ isLoading }),
-    }),
-    {
-      name: 'devos-auth',
-      partialize: (state) => ({ token: state.token, user: state.user, isAuthenticated: state.isAuthenticated }),
-    }
-  )
-);
+/**
+ * Auth store — token is stored in an httpOnly cookie (set by backend),
+ * NOT in localStorage. This prevents XSS token theft.
+ * Only user metadata is kept here for UI purposes.
+ */
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true, // start loading=true so app waits for /auth/me check
+  setAuth: (user) =>
+    set({ user, isAuthenticated: true, isLoading: false }),
+  setUser: (user) => set({ user }),
+  logout: () =>
+    set({ user: null, isAuthenticated: false, isLoading: false }),
+  setLoading: (isLoading) => set({ isLoading }),
+}));
