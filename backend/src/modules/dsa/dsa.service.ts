@@ -223,9 +223,22 @@ export const getStats = async (userId: string) => {
     }),
   ]);
 
+  // Reshape byDifficulty array into flat counts the frontend expects
+  const easy = byDifficulty.find(d => d.difficulty === 'EASY')?._count ?? 0;
+  const medium = byDifficulty.find(d => d.difficulty === 'MEDIUM')?._count ?? 0;
+  const hard = byDifficulty.find(d => d.difficulty === 'HARD')?._count ?? 0;
+
+  const dueRevisions = await prisma.dsaRevision.count({
+    where: { problem: { userId }, completedAt: null, dueDate: { lte: new Date() } },
+  });
+
   const statsResult = {
     total,
-    byDifficulty,
+    easy,
+    medium,
+    hard,
+    dueRevisions,
+    byDifficulty, // keep for any future use
     byPlatform,
     revisions: {
       total: revisionStats._count._all,

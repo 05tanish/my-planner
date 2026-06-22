@@ -41,7 +41,7 @@ export default function HabitsPage() {
     try {
       setLoading(true);
       const response = await api.get('/habits/stats');
-      setStats(response.data);
+      setStats(response.data.data);
     } catch (error) {
       console.error('Failed to fetch habit stats:', error);
     } finally {
@@ -52,7 +52,7 @@ export default function HabitsPage() {
   const fetchHeatmap = async (habitType: string) => {
     try {
       const response = await api.get(`/habits/heatmap/${habitType}?months=6`);
-      setHeatmapData(response.data);
+      setHeatmapData(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch heatmap:', error);
     }

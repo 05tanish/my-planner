@@ -37,10 +37,23 @@ export const projectService = {
 
   // Create project
   async createProject(userId: string, data: any) {
-    const {
-      features,
-      ...projectData
-    } = data;
+    const { features, notes, ...rest } = data;
+
+    // Only pass fields that exist in the Prisma schema
+    const allowedFields = [
+      'name', 'description', 'status', 'priority', 'startDate', 'endDate',
+      'githubUrl', 'deploymentUrl', 'documentationUrl', 'blogUrl',
+      'techStack', 'architectureNotes', 'currentMilestone', 'nextMilestone',
+      'resumeBullets', 'interviewTalkingPoints', 'challengesSolved', 'keyLearnings',
+      'commits', 'codingHours', 'deploymentCount', 'completionPercentage',
+    ];
+
+    const projectData: any = {};
+    for (const key of allowedFields) {
+      if (key in rest) projectData[key] = rest[key];
+    }
+    // Map 'notes' → 'architectureNotes' for backwards compat
+    if (notes !== undefined) projectData.architectureNotes = notes;
 
     const arrayFields = ['techStack', 'resumeBullets', 'interviewTalkingPoints', 'challengesSolved', 'keyLearnings'];
     const processedData = processArrayFields(projectData, arrayFields);
@@ -51,27 +64,40 @@ export const projectService = {
         userId,
         features: features ? {
           create: features.map((f: any, idx: number) => ({
-            ...f,
+            name: f.name,
+            description: f.description,
+            status: f.status || 'PENDING',
             order: idx
           }))
         } : undefined
       },
-      include: {
-        features: true
-      }
+      include: { features: true }
     });
   },
 
   // Update project
   async updateProject(projectId: string, userId: string, data: any) {
-    const { features, ...projectData } = data;
+    const { features, notes, ...rest } = data;
 
     // Verify ownership first
     const existing = await prisma.project.findFirst({
       where: { id: projectId, userId }
     });
-
     if (!existing) throw new Error('Project not found');
+
+    // Sanitize to allowed fields only
+    const allowedFields = [
+      'name', 'description', 'status', 'priority', 'startDate', 'endDate',
+      'githubUrl', 'deploymentUrl', 'documentationUrl', 'blogUrl',
+      'techStack', 'architectureNotes', 'currentMilestone', 'nextMilestone',
+      'resumeBullets', 'interviewTalkingPoints', 'challengesSolved', 'keyLearnings',
+      'commits', 'codingHours', 'deploymentCount', 'completionPercentage',
+    ];
+    const projectData: any = {};
+    for (const key of allowedFields) {
+      if (key in rest) projectData[key] = rest[key];
+    }
+    if (notes !== undefined) projectData.architectureNotes = notes;
 
     // Update project
     const project = await prisma.project.update({

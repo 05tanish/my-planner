@@ -81,7 +81,7 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       const res = await api.get('/projects');
-      setProjects(res.data);
+      setProjects(res.data.data);
     } catch { toast.error('Failed to load projects'); }
     finally { setLoading(false); }
   };
@@ -89,7 +89,7 @@ export default function ProjectsPage() {
   const fetchStats = async () => {
     try {
       const res = await api.get('/projects/stats');
-      setStats(res.data);
+      setStats(res.data.data);
     } catch { /* silent */ }
   };
 
@@ -124,7 +124,7 @@ export default function ProjectsPage() {
         toast.success('Project updated');
         if (detailProject?.id === editing.id) {
           const res = await api.get(`/projects/${editing.id}`);
-          setDetailProject(res.data);
+          setDetailProject(res.data.data);
         }
       } else {
         await api.post('/projects', payload);
@@ -150,7 +150,7 @@ export default function ProjectsPage() {
 
   const openDetail = async (p: Project) => {
     const res = await api.get(`/projects/${p.id}`);
-    setDetailProject(res.data);
+    setDetailProject(res.data.data);
   };
 
   const addFeature = async () => {
@@ -160,7 +160,7 @@ export default function ProjectsPage() {
       toast.success('Feature added');
       setFeatureInput('');
       const res = await api.get(`/projects/${detailProject.id}`);
-      setDetailProject(res.data);
+      setDetailProject(res.data.data);
       fetchProjects();
     } catch { toast.error('Failed to add feature'); }
   };
@@ -171,7 +171,7 @@ export default function ProjectsPage() {
     try {
       await api.patch(`/projects/features/${feature.id}`, { status: next });
       const res = await api.get(`/projects/${detailProject.id}`);
-      setDetailProject(res.data);
+      setDetailProject(res.data.data);
       fetchProjects();
     } catch { toast.error('Failed to update feature'); }
   };
@@ -181,7 +181,7 @@ export default function ProjectsPage() {
     try {
       await api.delete(`/projects/features/${featureId}`);
       const res = await api.get(`/projects/${detailProject.id}`);
-      setDetailProject(res.data);
+      setDetailProject(res.data.data);
       fetchProjects();
     } catch { toast.error('Failed to delete feature'); }
   };
@@ -500,11 +500,11 @@ export default function ProjectsPage() {
                 </div>
 
                 {/* Notes */}
-                {detailProject.notes && (
+                {(detailProject.architectureNotes || (detailProject as any).notes) && (
                   <div>
                     <p className="text-sm font-medium mb-1">Notes</p>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/40 p-3 rounded-lg">
-                      {detailProject.notes}
+                      {detailProject.architectureNotes || (detailProject as any).notes}
                     </p>
                   </div>
                 )}
