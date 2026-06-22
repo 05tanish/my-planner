@@ -35,6 +35,7 @@ interface Project {
   githubUrl?: string;
   deploymentUrl?: string;
   notes?: string;
+  architectureNotes?: string;
   tags?: string[];
   features: Feature[];
   createdAt: string;
