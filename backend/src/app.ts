@@ -15,7 +15,6 @@ import dsaRouter from './modules/dsa/dsa.routes';
 import notesRouter from './modules/notes/notes.routes';
 import plannerRouter from './modules/planner/planner.routes';
 import jobsRouter from './modules/jobs/jobs.routes';
-import learningRouter from './modules/learning/learning.routes';
 import resourcesRouter from './modules/resources/resources.routes';
 import booksRouter from './modules/books/books.routes';
 import placementRouter from './modules/placement/placement.routes';
@@ -40,6 +39,7 @@ app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -47,8 +47,8 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "*"],
         connectSrc: ["'self'", "*"],
-        frameSrc: ["'self'", env.FRONTEND_URL || 'http://localhost:5173', "http://localhost:4000", "blob:", "*"],
-        childSrc: ["'self'", env.FRONTEND_URL || 'http://localhost:5173', "http://localhost:4000", "blob:", "*"],
+        frameSrc: ["'self'", env.FRONTEND_URL || '*', "blob:", "*"],
+        childSrc: ["'self'", env.FRONTEND_URL || '*', "blob:", "*"],
         objectSrc: ["'self'", "data:", "blob:", "*"],
         mediaSrc: ["'self'", "data:", "blob:", "*"],
       },
@@ -77,6 +77,7 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   // Allow PDFs to be embedded in iframes from any origin
   res.removeHeader('X-Frame-Options');
   res.removeHeader('Content-Security-Policy');
@@ -99,7 +100,6 @@ app.use('/api/dsa', dsaRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/planner', plannerRouter);
 app.use('/api/jobs', jobsRouter);
-app.use('/api/learning', learningRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/books', booksRouter);
 app.use('/api/placement', placementRouter);
