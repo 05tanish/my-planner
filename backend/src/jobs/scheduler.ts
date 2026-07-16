@@ -42,8 +42,7 @@ export const initScheduler = () => {
   });
 
   // 5. Daily Reset - Every day at 4:00 AM
-  //    - Rolls over incomplete DAILY tasks to today
-  //    - Creates fresh DsaDailyGoal for today
+  //    - Creates fresh DsaDailyGoal for today (tasks stay on their original date)
   cron.schedule('0 4 * * *', async () => {
     console.log('⏰ Triggered Scheduled Task: Daily Reset');
     await runDailyResetJob();

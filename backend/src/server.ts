@@ -34,7 +34,9 @@ const startServer = async () => {
     // Start background jobs scheduler
     initScheduler();
 
-    // Use PORT from env — fallback to 4000 in dev, 8080 in prod
+    // PORT env var is always the source of truth:
+    // - Locally: set PORT=4000 in .env (or it defaults below)
+    // - Railway/Render/Heroku: platform injects PORT automatically
     const PORT = parseInt(process.env.PORT || (env.NODE_ENV === 'development' ? '4000' : '8080'), 10);
 
     const server = app.listen(PORT, '0.0.0.0', () => {
