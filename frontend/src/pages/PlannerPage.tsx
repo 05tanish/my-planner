@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Plus, Search, Calendar, CheckCircle2, Circle,
   Trash2, Edit2, Loader2, ArrowRight, ChevronLeft, ChevronRight,
-  CalendarArrowUp
+  CalendarArrowUp, Clock, AlertTriangle, Check
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Task, TaskPriority, TaskStatus, TaskScope } from '../types';
@@ -43,6 +43,32 @@ export function PlannerPage() {
   const [selectedScope, setSelectedScope] = useState<TaskScope | 'ALL'>('ALL');
   const [selectedPriority, setSelectedPriority] = useState<string>('');
 
+  // Daily Available Hours Capacity
+  const [totalAvailableHours, setTotalAvailableHours] = useState<number>(() => {
+    const saved = localStorage.getItem(`planner_total_day_hours_${selectedDate}`);
+    if (saved) return parseFloat(saved) || 8;
+    const globalSaved = localStorage.getItem('planner_total_day_hours');
+    return globalSaved ? parseFloat(globalSaved) || 8 : 8;
+  });
+
+  // Sync daily hours whenever selectedDate changes
+  useEffect(() => {
+    const saved = localStorage.getItem(`planner_total_day_hours_${selectedDate}`);
+    if (saved) {
+      setTotalAvailableHours(parseFloat(saved) || 8);
+    } else {
+      const globalSaved = localStorage.getItem('planner_total_day_hours');
+      setTotalAvailableHours(globalSaved ? parseFloat(globalSaved) || 8 : 8);
+    }
+  }, [selectedDate]);
+
+  const handleTotalHoursChange = (val: number) => {
+    const rounded = Math.max(0.5, Math.min(24, Math.round(val * 10) / 10));
+    setTotalAvailableHours(rounded);
+    localStorage.setItem(`planner_total_day_hours_${selectedDate}`, String(rounded));
+    localStorage.setItem('planner_total_day_hours', String(rounded));
+  };
+
   // Multi-select for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -58,6 +84,7 @@ export function PlannerPage() {
   const [scope, setScope] = useState<TaskScope>('DAILY');
   const [category, setCategory] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [estimatedHours, setEstimatedHours] = useState('1');
 
   const fetchTasks = async () => {
     try {
@@ -92,6 +119,7 @@ export function PlannerPage() {
     setScope(selectedScope === 'ALL' ? 'DAILY' : selectedScope as TaskScope);
     setCategory('');
     setDueDate(selectedDate);
+    setEstimatedHours('1');
     setIsOpen(true);
   };
 
@@ -104,12 +132,18 @@ export function PlannerPage() {
     setScope(t.scope);
     setCategory(t.category || '');
     setDueDate(t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : '');
+    setEstimatedHours(t.estimatedTime ? (t.estimatedTime / 60).toString() : '');
     setIsOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return toast.error('Task title is required');
+
+    const parsedHours = parseFloat(estimatedHours);
+    const estimatedTimeInMinutes = (!isNaN(parsedHours) && parsedHours > 0)
+      ? Math.round(parsedHours * 60)
+      : undefined;
 
     const payload = {
       title,
@@ -119,6 +153,7 @@ export function PlannerPage() {
       scope,
       category: category || undefined,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+      estimatedTime: estimatedTimeInMinutes,
     };
 
     try {
@@ -236,6 +271,18 @@ export function PlannerPage() {
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
+  // Time budget & allocation calculations
+  const totalAllocatedMinutes = tasks.reduce((acc, t) => acc + (t.estimatedTime || 0), 0);
+  const totalAllocatedHours = Math.round((totalAllocatedMinutes / 60) * 10) / 10;
+
+  const totalCompletedMinutes = tasks.filter(t => t.status === 'DONE').reduce((acc, t) => acc + (t.estimatedTime || 0), 0);
+  const totalCompletedHours = Math.round((totalCompletedMinutes / 60) * 10) / 10;
+
+  const isOvertime = totalAllocatedHours > totalAvailableHours;
+  const overtimeHours = isOvertime ? Math.round((totalAllocatedHours - totalAvailableHours) * 10) / 10 : 0;
+  const remainingHours = !isOvertime ? Math.round((totalAvailableHours - totalAllocatedHours) * 10) / 10 : 0;
+  const allocationPercentage = totalAvailableHours > 0 ? Math.min(100, Math.round((totalAllocatedHours / totalAvailableHours) * 100)) : 0;
+
   // Group tasks by status for columns
   const todoTasks = tasks.filter(t => t.status === 'TODO');
   const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS');
@@ -319,8 +366,13 @@ export function PlannerPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Daily Planner</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Track your daily, weekly, and monthly tasks and priorities</p>
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <span>Daily Planner</span>
+            <Badge variant="outline" className="text-[10px] font-normal text-primary bg-primary/10 border-primary/20">
+              <Clock className="w-3 h-3 mr-1" /> Time Aware
+            </Badge>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Track your daily tasks, assign required hours, and manage daily workload capacity</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {selectedIds.size > 0 && (
@@ -419,6 +471,140 @@ export function PlannerPage() {
           />
         </div>
       )}
+
+      {/* ─── DAILY TIME ALLOCATION & HOURS BUDGET SECTION ──────────────────────── */}
+      <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/50 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                Daily Hours Budget & Workload Allocation
+              </h3>
+              <p className="text-xs text-muted-foreground">Assign available hours in your day and track allocated vs remaining time</p>
+            </div>
+          </div>
+          
+          {/* Quick presets for available hours */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-medium text-muted-foreground mr-1">Presets:</span>
+            {[4, 6, 8, 10, 12].map(hrs => (
+              <button
+                key={hrs}
+                onClick={() => handleTotalHoursChange(hrs)}
+                className={cn(
+                  'px-2.5 py-1 text-xs rounded-md font-mono transition-colors border',
+                  totalAvailableHours === hrs
+                    ? 'bg-primary text-primary-foreground font-bold border-primary'
+                    : 'bg-secondary/60 text-muted-foreground hover:text-foreground border-border'
+                )}
+              >
+                {hrs}h
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 4 Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Day Capacity Input */}
+          <div className="bg-secondary/40 border border-border/70 rounded-lg p-3.5 flex flex-col justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Total Available Day Hours</span>
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={() => handleTotalHoursChange(totalAvailableHours - 0.5)}
+                className="w-7 h-7 rounded bg-secondary hover:bg-secondary/80 border border-border text-foreground font-bold text-sm flex items-center justify-center transition-colors"
+                title="Decrease 0.5h"
+              >
+                -
+              </button>
+              <div className="flex-1 text-center">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0.5"
+                  max="24"
+                  value={totalAvailableHours}
+                  onChange={e => handleTotalHoursChange(parseFloat(e.target.value) || 0)}
+                  className="w-full text-center bg-transparent text-lg font-bold text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary rounded"
+                />
+              </div>
+              <button
+                onClick={() => handleTotalHoursChange(totalAvailableHours + 0.5)}
+                className="w-7 h-7 rounded bg-secondary hover:bg-secondary/80 border border-border text-foreground font-bold text-sm flex items-center justify-center transition-colors"
+                title="Increase 0.5h"
+              >
+                +
+              </button>
+              <span className="text-xs font-semibold text-muted-foreground font-mono">hrs</span>
+            </div>
+          </div>
+
+          {/* Card 2: Allocated Task Hours */}
+          <div className="bg-secondary/40 border border-border/70 rounded-lg p-3.5 flex flex-col justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Task Hours Allocated</span>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-lg font-bold text-foreground font-mono">{totalAllocatedHours} <span className="text-xs text-muted-foreground">hrs</span></span>
+              <span className="text-xs text-muted-foreground font-mono">{tasks.length} task(s)</span>
+            </div>
+          </div>
+
+          {/* Card 3: Completed Hours */}
+          <div className="bg-secondary/40 border border-border/70 rounded-lg p-3.5 flex flex-col justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Hours Completed</span>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-lg font-bold text-emerald-400 font-mono">{totalCompletedHours} <span className="text-xs text-muted-foreground">hrs</span></span>
+              <span className="text-xs text-muted-foreground font-mono">
+                {totalAllocatedHours > 0 ? Math.round((totalCompletedHours / totalAllocatedHours) * 100) : 0}% done
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Remaining Balance vs Overtime Warning */}
+          <div className={cn(
+            'border rounded-lg p-3.5 flex flex-col justify-between transition-colors',
+            isOvertime
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider">
+                {isOvertime ? 'Overtime Warning' : 'Time Left to Utilize'}
+              </span>
+              {isOvertime ? <AlertTriangle className="w-4 h-4 text-rose-400 animate-bounce" /> : <Check className="w-4 h-4 text-emerald-400" />}
+            </div>
+            <div className="flex items-baseline justify-between mt-2">
+              <span className="text-xl font-extrabold font-mono">
+                {isOvertime ? `+${overtimeHours}` : remainingHours} <span className="text-xs">hrs</span>
+              </span>
+              <span className="text-[11px] opacity-80">
+                {isOvertime ? 'Exceeds day capacity' : 'Available for work'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <span>Capacity Allocated ({allocationPercentage}%)</span>
+            <span className="font-mono">{totalAllocatedHours}h / {totalAvailableHours}h</span>
+          </div>
+          <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+            <div
+              className={cn(
+                'h-full transition-all duration-300 rounded-full',
+                isOvertime
+                  ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                  : 'bg-gradient-to-r from-cyan-500 to-primary'
+              )}
+              style={{ width: `${Math.min(100, (totalAllocatedHours / (totalAvailableHours || 1)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Search and Priority filters */}
       <div className="flex flex-col md:flex-row gap-3 items-center bg-card border border-border p-4 rounded-lg">
@@ -540,28 +726,52 @@ export function PlannerPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+                  <span>Hours Needed</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">e.g. 1.5 = 1h 30m</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    max="24"
+                    value={estimatedHours}
+                    onChange={e => setEstimatedHours(e.target.value)}
+                    placeholder="e.g. 1.5"
+                    className="bg-secondary pr-10"
+                  />
+                  <div className="absolute right-3 top-2.5 text-xs text-muted-foreground font-semibold pointer-events-none">
+                    hrs
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Category</label>
                 <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. DSA, Placement, AI" className="bg-secondary" />
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Due Date</label>
                 <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="bg-secondary" />
               </div>
-            </div>
 
-            {editingTask && (
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
-                <select
-                  value={status}
-                  onChange={e => setStatus(e.target.value as TaskStatus)}
-                  className="w-full h-10 px-3 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary"
-                >
-                  {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                </select>
-              </div>
-            )}
+              {editingTask ? (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value as TaskStatus)}
+                    className="w-full h-10 px-3 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary"
+                  >
+                    {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                  </select>
+                </div>
+              ) : <div />}
+            </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
@@ -673,6 +883,14 @@ function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelecte
           <Badge variant="outline" className={cn('text-[9px] py-0 px-1.5 uppercase', getPriorityColor(task.priority))}>
             {task.priority}
           </Badge>
+
+          {task.estimatedTime ? (
+            <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-mono text-cyan-400 bg-cyan-400/10 border-cyan-400/20">
+              <Clock className="w-2.5 h-2.5 mr-0.5 inline" />
+              {(task.estimatedTime / 60) >= 1 ? `${(task.estimatedTime / 60).toFixed(1)}h` : `${task.estimatedTime}m`}
+            </Badge>
+          ) : null}
+
           {task.category && (
             <span className="bg-secondary px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground">{task.category}</span>
           )}
@@ -704,4 +922,3 @@ function TaskCard({ task, onToggle, onEdit, onDelete, onMoveToNextDay, isSelecte
     </div>
   );
 }
-

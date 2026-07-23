@@ -82,6 +82,8 @@ export interface Task {
   reminderAt?: string;
   isRecurring: boolean;
   recurrRule?: string;
+  estimatedTime?: number;
+  actualTime?: number;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
