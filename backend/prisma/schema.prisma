@@ -346,7 +346,11 @@ model Job {
   location    String?
   salary      String?
   notes       String?
-  resumeId    String?   // optional attached resume
+  resumeId    String?   // optional attached resume from resume library
+  resumeFileName   String?
+  resumePath       String?   // resume URL or path
+  resumeSize       Int?      // size in bytes
+  resumeUploadedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)

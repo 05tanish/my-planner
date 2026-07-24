@@ -126,6 +126,10 @@ export interface Job {
   location?: string;
   salary?: string;
   notes?: string;
+  resumeFileName?: string;
+  resumePath?: string;
+  resumeSize?: number;
+  resumeUploadedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -4,7 +4,14 @@ import { Prisma } from '@prisma/client';
 import { sendHighPriorityTaskAlert } from '../../services/telegram.service';
 
 export const createTask = async (userId: string, data: any) => {
-  const task = await prisma.task.create({ data: { ...data, userId } });
+  const payload = { ...data, userId };
+  if (!payload.dueDate) {
+    payload.dueDate = new Date();
+  }
+  if (payload.status === 'DONE' && !payload.completedAt) {
+    payload.completedAt = new Date();
+  }
+  const task = await prisma.task.create({ data: payload });
   
   // Send Telegram alert for high/critical priority tasks
   if (data.priority === 'HIGH' || data.priority === 'CRITICAL') {
@@ -45,10 +52,10 @@ export const getTasks = async (
     start.setHours(0, 0, 0, 0);
     const end = new Date(query.date);
     end.setHours(23, 59, 59, 999);
-    where.dueDate = {
-      gte: start,
-      lte: end,
-    };
+    where.OR = [
+      { dueDate: { gte: start, lte: end } },
+      { dueDate: null, createdAt: { gte: start, lte: end } }
+    ];
   }
 
   const [tasks, total] = await Promise.all([
@@ -61,7 +68,11 @@ export const getTasks = async (
 export const updateTask = async (userId: string, id: string, data: any) => {
   const task = await prisma.task.findFirst({ where: { id, userId } });
   if (!task) throw new AppError('Task not found.', 404);
-  return prisma.task.update({ where: { id }, data });
+  const payload = { ...data };
+  if (payload.status === 'DONE' && task.status !== 'DONE' && !payload.completedAt) {
+    payload.completedAt = new Date();
+  }
+  return prisma.task.update({ where: { id }, data: payload });
 };
 
 export const deleteTask = async (userId: string, id: string) => {
@@ -80,13 +91,12 @@ export const getTodayTasks = async (userId: string) => {
     where: {
       userId,
       scope: 'DAILY',
-      status: { not: 'DONE' },
-      dueDate: {
-        gte: today,
-        lt: tomorrow,
-      },
+      OR: [
+        { dueDate: { gte: today, lt: tomorrow } },
+        { dueDate: null, createdAt: { gte: today, lt: tomorrow } }
+      ]
     },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    orderBy: [{ sortOrder: 'asc' }, { priority: 'desc' }, { createdAt: 'asc' }],
   });
 };
 

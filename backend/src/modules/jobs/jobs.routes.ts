@@ -5,23 +5,32 @@ import * as c from './jobs.controller';
 import * as rc from './resume.controller';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit per prompt validation
+});
 
 router.use(authenticate);
 
 // Job CRUD
 router.get('/', c.list);
 router.post('/', c.create);
+router.get('/:id', c.getOne);
 router.patch('/:id', c.update);
 router.delete('/:id', c.remove);
 
-// Resume library
+// Per-Job Specific Resume Endpoints
+router.post('/:id/resume', upload.single('file'), c.uploadResume);
+router.delete('/:id/resume', c.deleteResume);
+router.get('/:id/resume/download', c.downloadResume);
+
+// Resume library (General)
 router.get('/resumes', rc.list);
 router.post('/resumes', upload.single('file'), rc.upload);
 router.patch('/resumes/:id', rc.update);
 router.delete('/resumes/:id', rc.remove);
 
-// Attach resume to a job
+// Attach general library resume to a job
 router.patch('/:jobId/resume', rc.attachToJob);
 
 export default router;

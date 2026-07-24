@@ -40,33 +40,38 @@ export function PlannerPage() {
 
   // Search & Filters
   const [search, setSearch] = useState('');
-  const [selectedScope, setSelectedScope] = useState<TaskScope | 'ALL'>('ALL');
+  const [selectedScope, setSelectedScope] = useState<TaskScope | 'ALL'>('DAILY');
   const [selectedPriority, setSelectedPriority] = useState<string>('');
 
-  // Daily Available Hours Capacity
+  // Daily Available Hours Capacity — isolated per day
   const [totalAvailableHours, setTotalAvailableHours] = useState<number>(() => {
     const saved = localStorage.getItem(`planner_total_day_hours_${selectedDate}`);
-    if (saved) return parseFloat(saved) || 8;
-    const globalSaved = localStorage.getItem('planner_total_day_hours');
-    return globalSaved ? parseFloat(globalSaved) || 8 : 8;
+    return saved ? parseFloat(saved) || 8 : 8;
   });
 
-  // Sync daily hours whenever selectedDate changes
+  // Daily Notes — isolated per day
+  const [dayNotes, setDayNotes] = useState<string>(() => {
+    return localStorage.getItem(`planner_day_notes_${selectedDate}`) || '';
+  });
+
+  // Sync daily hours & notes whenever selectedDate changes
   useEffect(() => {
-    const saved = localStorage.getItem(`planner_total_day_hours_${selectedDate}`);
-    if (saved) {
-      setTotalAvailableHours(parseFloat(saved) || 8);
-    } else {
-      const globalSaved = localStorage.getItem('planner_total_day_hours');
-      setTotalAvailableHours(globalSaved ? parseFloat(globalSaved) || 8 : 8);
-    }
+    const savedHours = localStorage.getItem(`planner_total_day_hours_${selectedDate}`);
+    setTotalAvailableHours(savedHours ? parseFloat(savedHours) || 8 : 8);
+
+    const savedNotes = localStorage.getItem(`planner_day_notes_${selectedDate}`);
+    setDayNotes(savedNotes || '');
   }, [selectedDate]);
 
   const handleTotalHoursChange = (val: number) => {
     const rounded = Math.max(0.5, Math.min(24, Math.round(val * 10) / 10));
     setTotalAvailableHours(rounded);
     localStorage.setItem(`planner_total_day_hours_${selectedDate}`, String(rounded));
-    localStorage.setItem('planner_total_day_hours', String(rounded));
+  };
+
+  const handleDayNotesChange = (val: string) => {
+    setDayNotes(val);
+    localStorage.setItem(`planner_day_notes_${selectedDate}`, val);
   };
 
   // Multi-select for bulk operations
@@ -603,6 +608,23 @@ export function PlannerPage() {
               style={{ width: `${Math.min(100, (totalAllocatedHours / (totalAvailableHours || 1)) * 100)}%` }}
             />
           </div>
+        </div>
+
+        {/* Daily Notes & Reflections */}
+        <div className="pt-3 border-t border-border/40 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <span>Day Notes & Focus ({formatDateLabel(selectedDate)})</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">Isolated for {selectedDate}</span>
+          </div>
+          <textarea
+            value={dayNotes}
+            onChange={e => handleDayNotesChange(e.target.value)}
+            placeholder="Key goals, notes, reminders, or reflections for this day..."
+            rows={2}
+            className="w-full p-2.5 bg-secondary/40 border border-border/60 rounded-md text-xs text-foreground focus:outline-none focus:border-primary/50 transition-colors"
+          />
         </div>
       </div>
 
