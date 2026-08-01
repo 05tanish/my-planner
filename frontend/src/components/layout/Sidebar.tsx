@@ -1,9 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarCheck, Code2, FileText,
-  BookMarked, Target, Briefcase, Library, BarChart2,
-  Network, Settings, ChevronLeft, ChevronRight, LogOut, User,
-  FolderKanban, MessageSquare, Flame, Radar, Trophy, Brain, Bell
+  BookMarked, Target, Briefcase, Library,
+  Settings, ChevronLeft, ChevronRight, LogOut, User,
+  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 const NAV = [
   { label: 'Dashboard',       path: '/',           Icon: LayoutDashboard },
+  { label: 'Priority',        path: '/priority',   Icon: ListOrdered },
   { label: 'Planner',         path: '/planner',    Icon: CalendarCheck },
   { label: 'DSA Tracker',     path: '/dsa',        Icon: Code2 },
   { label: 'Notes',           path: '/notes',      Icon: FileText },
@@ -23,15 +24,11 @@ const NAV = [
   { label: 'Job Tracker',     path: '/jobs',       Icon: Briefcase },
   { label: 'Books',           path: '/books',      Icon: Library },
   { label: 'GitHub',          path: '/github',     Icon: Github },
-  { label: 'Analytics',       path: '/analytics',  Icon: BarChart2 },
-  { label: 'Knowledge Graph', path: '/graph',      Icon: Network },
   { label: '—', path: 'divider-1', Icon: null, isDivider: true },
   { label: 'Projects',        path: '/projects',      Icon: FolderKanban, isV2: true },
   { label: 'Interviews',      path: '/interviews',    Icon: MessageSquare, isV2: true },
-  { label: 'Habits',          path: '/habits',        Icon: Flame, isV2: true },
   { label: 'Opportunities',   path: '/opportunities', Icon: Radar, isV2: true },
   { label: 'Hackathons',      path: '/hackathons',    Icon: Trophy, isV2: true },
-  { label: 'Knowledge Base',  path: '/knowledge',     Icon: Brain, isV2: true },
   { label: 'Alerts',          path: '/alerts',        Icon: Bell, isV2: true },
   { label: '—', path: 'divider-2', Icon: null, isDivider: true },
   { label: 'Settings',        path: '/settings',   Icon: Settings },

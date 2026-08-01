@@ -5,6 +5,7 @@ import { getStreakStats } from '../github/github.service';
 import * as redis from '../../services/redis.service';
 
 const DEFAULT_WIDGETS = [
+  { id: 'priority', type: 'ACTIVE_PRIORITY', visible: true, config: {} },
   { id: 'tasks', type: 'TODAY_TASKS', visible: true, config: {} },
   { id: 'dsa', type: 'DSA_PROGRESS', visible: true, config: {} },
   { id: 'github', type: 'GITHUB_STREAK', visible: true, config: {} },
@@ -18,16 +19,17 @@ const DEFAULT_WIDGETS = [
 ];
 
 const DEFAULT_LAYOUT = [
-  { i: 'tasks', x: 0, y: 0, w: 4, h: 4 },
-  { i: 'dsa', x: 4, y: 0, w: 4, h: 4 },
-  { i: 'github', x: 8, y: 0, w: 4, h: 4 },
-  { i: 'activityChart', x: 0, y: 4, w: 12, h: 5 },
-  { i: 'milestones', x: 0, y: 9, w: 6, h: 4 },
-  { i: 'revision', x: 6, y: 9, w: 6, h: 4 },
-  { i: 'reminders', x: 0, y: 13, w: 4, h: 4 },
-  { i: 'placement', x: 4, y: 13, w: 4, h: 4 },
-  { i: 'jobs', x: 8, y: 13, w: 4, h: 4 },
-  { i: 'notes', x: 0, y: 17, w: 12, h: 4 },
+  { i: 'priority', x: 0, y: 0, w: 12, h: 4 },
+  { i: 'tasks', x: 0, y: 4, w: 4, h: 4 },
+  { i: 'dsa', x: 4, y: 4, w: 4, h: 4 },
+  { i: 'github', x: 8, y: 4, w: 4, h: 4 },
+  { i: 'activityChart', x: 0, y: 8, w: 12, h: 5 },
+  { i: 'milestones', x: 0, y: 13, w: 6, h: 4 },
+  { i: 'revision', x: 6, y: 13, w: 6, h: 4 },
+  { i: 'reminders', x: 0, y: 17, w: 4, h: 4 },
+  { i: 'placement', x: 4, y: 17, w: 4, h: 4 },
+  { i: 'jobs', x: 8, y: 17, w: 4, h: 4 },
+  { i: 'notes', x: 0, y: 21, w: 12, h: 4 },
 ];
 
 export const getLayout = async (userId: string) => {
@@ -112,6 +114,8 @@ export const getStats = async (userId: string) => {
     pinnedNotesCount,
     totalNotesCount,
     activeRemindersCount,
+    activePriority,
+    nextPriority,
   ] = await Promise.all([
     prisma.task.count({
       where: {
@@ -161,6 +165,13 @@ export const getStats = async (userId: string) => {
     prisma.reminder.count({
       where: { userId, isActive: true },
     }),
+    prisma.priority.findFirst({
+      where: { userId, isActive: true },
+    }),
+    prisma.priority.findFirst({
+      where: { userId, status: { in: ['NOT_STARTED', 'PAUSED'] } },
+      orderBy: { queuePosition: 'asc' },
+    }),
   ]);
 
   const learningMinutesToday = learningAgg._sum.durationMin || 0;
@@ -172,6 +183,10 @@ export const getStats = async (userId: string) => {
   }
 
   const statsResult = {
+    priority: {
+      active: activePriority,
+      next: nextPriority,
+    },
     tasks: {
       dueToday: tasksDueToday,
       completedToday: tasksCompletedToday,

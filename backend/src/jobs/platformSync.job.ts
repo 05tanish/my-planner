@@ -1,55 +1,6 @@
 import prisma from '../config/database';
 import { startOfDay } from 'date-fns';
-
-const LEETCODE_API = 'https://leetcode-stats-api.herokuapp.com';
-
-interface LeetCodeStats {
-  totalSolved: number;
-  easySolved: number;
-  mediumSolved: number;
-  hardSolved: number;
-  ranking: number;
-  contributionPoints: number;
-  reputation: number;
-}
-
-/**
- * Fetch LeetCode stats for a username
- */
-async function fetchLeetCodeStats(username: string): Promise<LeetCodeStats | null> {
-  try {
-    const res = await fetch(`${LEETCODE_API}/${encodeURIComponent(username)}`);
-    if (!res.ok) return null;
-    const data: any = await res.json();
-    if (data.status === 'error') return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Fetch GFG stats for a username via HTML scraping
- */
-async function fetchGfgStats(username: string): Promise<{ totalSolved: number } | null> {
-  try {
-    const res = await fetch(`https://auth.geeksforgeeks.org/user/${encodeURIComponent(username)}/practice/`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-
-    // Parse total solved from GFG profile page
-    const match = html.match(/total-problems-count[^>]*>\s*(\d+)/i)
-      || html.match(/"totalProblems"\s*:\s*(\d+)/i)
-      || html.match(/Problems Solved[^<]*<[^>]*>\s*(\d+)/i);
-
-    const totalSolved = match ? parseInt(match[1], 10) : 0;
-    return { totalSolved };
-  } catch {
-    return null;
-  }
-}
+import { fetchLeetcodeStats, fetchGfgStats } from '../modules/dsa/dsa.service';
 
 /**
  * Platform Sync Job — syncs LeetCode & GFG stats for all users daily
@@ -78,7 +29,7 @@ export const runPlatformSyncJob = async () => {
       try {
         // Sync LeetCode
         if (profile.leetcodeUsername) {
-          const stats = await fetchLeetCodeStats(profile.leetcodeUsername);
+          const stats = await fetchLeetcodeStats(profile.leetcodeUsername);
           if (stats) {
             // Store as a DSA problem count snapshot using GitHubStats-like approach
             // We log to a custom analytics snapshot

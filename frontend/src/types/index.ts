@@ -282,3 +282,42 @@ export interface PaginatedResponse<T> {
   data: T[];
   total: number;
 }
+
+// ─── Priorities ───────────────────────────────────────────────────────────────
+export type PriorityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type PriorityStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
+
+export interface Priority {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  category?: string;
+  priorityLevel: PriorityLevel;
+  status: PriorityStatus;
+  estimatedTotalHours: number;
+  hoursCompleted: number;
+  dailyHoursAlloc: number;
+  progress: number;
+  deadline?: string;
+  queuePosition: number;
+  isActive: boolean;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  remainingHours?: number;
+  remainingDays?: number;
+  estimatedFinishDate?: string;
+}
+
+export interface PriorityStats {
+  activePriority: Priority | null;
+  nextPriority: Priority | null;
+  todayPlannedHours: number;
+  totalRemainingHours: number;
+  totalCompleted: number;
+  totalInQueue: number;
+  overallProgress: number;
+  estimatedFinishDate: string | null;
+}
+

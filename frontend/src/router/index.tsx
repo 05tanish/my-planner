@@ -19,16 +19,13 @@ const ResourcesPage   = lazy(() => import('../pages/ResourcesPage').then(m => ({
 const BooksPage       = lazy(() => import('../pages/BooksPage').then(m => ({ default: m.BooksPage })));
 const PlacementPage   = lazy(() => import('../pages/PlacementPage').then(m => ({ default: m.PlacementPage })));
 const GitHubPage      = lazy(() => import('../pages/GitHubPage').then(m => ({ default: m.GitHubPage })));
-const AnalyticsPage   = lazy(() => import('../pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
-const GraphPage       = lazy(() => import('../pages/GraphPage').then(m => ({ default: m.GraphPage })));
+const PriorityPage    = lazy(() => import('../pages/PriorityPage'));
 const SettingsPage    = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 // V2 Pages
 const ProjectsPage      = lazy(() => import('../pages/ProjectsPage'));
 const InterviewsPage    = lazy(() => import('../pages/InterviewsPage'));
-const HabitsPage        = lazy(() => import('../pages/HabitsPage'));
 const OpportunitiesPage = lazy(() => import('../pages/OpportunitiesPage'));
 const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
-const KnowledgePage     = lazy(() => import('../pages/KnowledgePage'));
 const AlertsPage        = lazy(() => import('../pages/AlertsPage'));
 
 function PageLoader() {
@@ -137,11 +134,8 @@ export function AppRouter() {
         <Route path="/github" element={
           <Suspense fallback={<PageLoader />}><GitHubPage /></Suspense>
         } />
-        <Route path="/analytics" element={
-          <Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>
-        } />
-        <Route path="/graph" element={
-          <Suspense fallback={<PageLoader />}><GraphPage /></Suspense>
+        <Route path="/priority" element={
+          <Suspense fallback={<PageLoader />}><PriorityPage /></Suspense>
         } />
         <Route path="/settings" element={
           <Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>
@@ -153,17 +147,11 @@ export function AppRouter() {
         <Route path="/interviews" element={
           <Suspense fallback={<PageLoader />}><InterviewsPage /></Suspense>
         } />
-        <Route path="/habits" element={
-          <Suspense fallback={<PageLoader />}><HabitsPage /></Suspense>
-        } />
         <Route path="/opportunities" element={
           <Suspense fallback={<PageLoader />}><OpportunitiesPage /></Suspense>
         } />
         <Route path="/hackathons" element={
           <Suspense fallback={<PageLoader />}><HackathonsPage /></Suspense>
-        } />
-        <Route path="/knowledge" element={
-          <Suspense fallback={<PageLoader />}><KnowledgePage /></Suspense>
         } />
         <Route path="/alerts" element={
           <Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>

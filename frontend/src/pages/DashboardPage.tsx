@@ -3,7 +3,7 @@ import RGL, { WidthProvider } from 'react-grid-layout/legacy';
 import {
   Code2, CalendarCheck,
   Bell, Target, Briefcase, FileText, TrendingUp, CheckCircle2,
-  Clock, AlertCircle, Flame, Loader2, Edit2, Check, RotateCcw, Eye, EyeOff
+  Clock, AlertCircle, Flame, Loader2, Edit2, Check, RotateCcw, Eye, EyeOff, ListOrdered
 } from 'lucide-react';
 import { Github } from '../components/ui/BrandIcons';
 import { api } from '../lib/api';
@@ -23,6 +23,10 @@ const ReactGridLayout = WidthProvider(RGL);
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 interface DashStats {
+  priority?: {
+    active: { id: string; title: string; progress: number; estimatedTotalHours: number; hoursCompleted: number; dailyHoursAlloc: number } | null;
+    next: { id: string; title: string; priorityLevel: string } | null;
+  };
   tasks: { dueToday: number; completedToday: number; pending: number };
   dsa: { totalSolved: number; dueRevisions: number };
   github: { currentStreak: number; longestStreak: number; totalCommits: number; todayCommits: number; hasCommittedToday: boolean };
@@ -395,6 +399,68 @@ function ActivityChartWidget({ isEditing }: { isEditing?: boolean }) {
   );
 }
 
+function PriorityWidget({ data, isEditing }: { data?: DashStats['priority']; isEditing?: boolean }) {
+  const active = data?.active;
+  const next = data?.next;
+  const remHours = active ? Math.max(active.estimatedTotalHours - active.hoursCompleted, 0) : 0;
+  const remDays = active && active.dailyHoursAlloc > 0 ? Math.ceil(remHours / active.dailyHoursAlloc) : 0;
+
+  return (
+    <Widget title="Current Active Priority" icon={ListOrdered} isEditing={isEditing}>
+      {!active ? (
+        <div className="flex flex-col items-center justify-center h-full text-center py-2 gap-1">
+          <p className="text-xs text-muted-foreground">No active priority in progress.</p>
+          <a href="/priority" className="text-[11px] text-primary hover:underline font-semibold">
+            Set Priority in Execution Queue →
+          </a>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-foreground truncate">{active.title}</span>
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                Active
+              </Badge>
+            </div>
+            <div className="space-y-1 mt-2">
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>Progress</span>
+                <span className="font-semibold text-foreground">{active.progress}%</span>
+              </div>
+              <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${active.progress}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/20 text-center">
+            <div className="bg-secondary/30 rounded p-1.5">
+              <p className="text-[10px] text-muted-foreground">Planned Today</p>
+              <p className="text-xs font-bold text-foreground">{active.dailyHoursAlloc}h/day</p>
+            </div>
+            <div className="bg-secondary/30 rounded p-1.5">
+              <p className="text-[10px] text-muted-foreground">Remaining</p>
+              <p className="text-xs font-bold text-foreground">{remHours}h</p>
+            </div>
+            <div className="bg-secondary/30 rounded p-1.5">
+              <p className="text-[10px] text-muted-foreground">Est. Finish</p>
+              <p className="text-xs font-bold text-foreground">{remDays} days</p>
+            </div>
+          </div>
+
+          {next && (
+            <div className="flex items-center justify-between text-[11px] bg-secondary/20 rounded px-2 py-1.5 border border-border/10">
+              <span className="text-muted-foreground truncate">Next: <strong className="text-foreground">{next.title}</strong></span>
+              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-bold">{next.priorityLevel}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </Widget>
+  );
+}
+
 /* ─── Dashboard Page ─────────────────────────────────────────────────── */
 export function DashboardPage() {
   const [stats, setStats] = useState<DashStats | null>(null);
@@ -501,6 +567,7 @@ export function DashboardPage() {
 
   const renderWidgetContent = (id: string) => {
     switch (id) {
+      case 'priority': return <PriorityWidget data={stats.priority} isEditing={isEditing} />;
       case 'tasks': return <TasksWidget data={stats.tasks} isEditing={isEditing} />;
       case 'dsa': return <DSAWidget data={stats.dsa} isEditing={isEditing} />;
       case 'github': return <GitHubWidget data={stats.github} isEditing={isEditing} />;

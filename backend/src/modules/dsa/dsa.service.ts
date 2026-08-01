@@ -369,45 +369,92 @@ export const toggleDailyGoal = async (userId: string, completed: boolean) => {
 };
 
 export const fetchLeetcodeStats = async (username: string) => {
+  if (!username) return null;
+  const cleanUser = username.trim();
   try {
-    const res = await fetch(`https://leetcode-stats-api.herokuapp.com/${username}`);
-    if (!res.ok) return null;
-    const data = await res.json() as any;
-    if (data.status === 'success') {
-      return {
-        totalSolved: data.totalSolved,
-        easySolved: data.easySolved,
-        mediumSolved: data.mediumSolved,
-        hardSolved: data.hardSolved,
-        acceptanceRate: data.acceptanceRate,
-        ranking: data.ranking,
-      };
+    const res = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        'Referer': 'https://leetcode.com',
+      },
+      body: JSON.stringify({
+        query: `query getUserProfile($username: String!) {
+          matchedUser(username: $username) {
+            username
+            submitStats {
+              acSubmissionNum {
+                difficulty
+                count
+              }
+            }
+            profile {
+              ranking
+              reputation
+            }
+          }
+        }`,
+        variables: { username: cleanUser },
+      }),
+    });
+
+    if (res.ok) {
+      const json = (await res.json()) as any;
+      const user = json?.data?.matchedUser;
+      if (user) {
+        const stats = user.submitStats?.acSubmissionNum || [];
+        const allItem = stats.find((s: any) => s.difficulty === 'All');
+        const easyItem = stats.find((s: any) => s.difficulty === 'Easy');
+        const mediumItem = stats.find((s: any) => s.difficulty === 'Medium');
+        const hardItem = stats.find((s: any) => s.difficulty === 'Hard');
+
+        return {
+          totalSolved: allItem?.count || 0,
+          easySolved: easyItem?.count || 0,
+          mediumSolved: mediumItem?.count || 0,
+          hardSolved: hardItem?.count || 0,
+          acceptanceRate: 0,
+          ranking: user.profile?.ranking || 0,
+        };
+      }
     }
-    return null;
   } catch (err) {
-    console.error('❌ Failed to fetch LeetCode stats:', err);
-    return null;
+    console.error('❌ Direct LeetCode GraphQL fetch failed:', err);
   }
+  return null;
 };
 
 export const fetchGfgStats = async (username: string) => {
+  if (!username) return null;
+  const cleanUser = username.trim();
   try {
-    const res = await fetch(`https://www.geeksforgeeks.org/user/${username}/`);
-    if (!res.ok) return null;
-    const html = await res.text();
-    const solvedMatch = html.match(/"problemsSolved"\s*:\s*(\d+)/i) || 
-                        html.match(/Problems\s+Solved[^<]*<\/span><span[^>]*>(\d+)/i) ||
-                        html.match(/(\d+)\s+Problems\s+Solved/i);
-    if (solvedMatch && solvedMatch[1]) {
-      return {
-        totalSolved: parseInt(solvedMatch[1], 10),
-      };
+    const res = await fetch(`https://www.geeksforgeeks.org/user/${encodeURIComponent(cleanUser)}/`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      const solvedMatch =
+        html.match(/"total_problems_solved"\s*:\s*(\d+)/i) ||
+        html.match(/"problemsSolved"\s*:\s*(\d+)/i) ||
+        html.match(/total-problems-count[^>]*>\s*(\d+)/i) ||
+        html.match(/Problems\s+Solved[^<]*<\/span><span[^>]*>(\d+)/i) ||
+        html.match(/(\d+)\s+Problems\s+Solved/i);
+
+      if (solvedMatch && solvedMatch[1]) {
+        return {
+          totalSolved: parseInt(solvedMatch[1], 10),
+        };
+      }
     }
-    return null;
   } catch (err) {
     console.error('❌ Failed to fetch GFG stats:', err);
-    return null;
   }
+  return null;
 };
 
 export const getProfileStats = async (userId: string) => {

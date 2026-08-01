@@ -61,6 +61,7 @@ model User {
   opportunities        Opportunity[]
   hackathons           Hackathon[]
   alerts               Alert[]
+  priorities           Priority[]
 }
 
 model Session {
@@ -1102,4 +1103,49 @@ model Alert {
   @@index([userId, dismissed])
   @@index([level])
 }
+
+// ─────────────────────────────────────────────
+// PRIORITY EXECUTION QUEUE
+// ─────────────────────────────────────────────
+
+enum PriorityLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum PriorityStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model Priority {
+  id                  String         @id @default(cuid())
+  userId              String
+  title               String
+  description         String?
+  category            String?
+  priorityLevel       PriorityLevel  @default(MEDIUM)
+  status              PriorityStatus @default(NOT_STARTED)
+  estimatedTotalHours Float          @default(0)
+  hoursCompleted      Float          @default(0)
+  dailyHoursAlloc     Float          @default(1)
+  progress            Int            @default(0)
+  deadline            DateTime?
+  queuePosition       Int            @default(0)
+  isActive            Boolean        @default(false)
+  completedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([queuePosition])
+}
+
 
