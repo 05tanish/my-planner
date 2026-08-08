@@ -48,6 +48,9 @@ export function SettingsPage() {
   const [syncTesting, setSyncTesting] = useState(false);
   const [syncResult, setSyncResult] = useState<{ leetcode: any; gfg: any } | null>(null);
 
+  // Manual Alert Trigger State
+  const [testingAlerts, setTestingAlerts] = useState(false);
+
   // Password Update Fields
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -596,6 +599,30 @@ export function SettingsPage() {
                             onChange={e => setNotifTelegram(e.target.checked)}
                             className="w-4 h-4 text-primary bg-secondary border-border rounded focus:ring-primary"
                           />
+                        </div>
+
+                        {/* Test Alerts Button */}
+                        <div className="pt-2">
+                          <Button
+                            type="button"
+                            disabled={testingAlerts}
+                            onClick={async () => {
+                              setTestingAlerts(true);
+                              try {
+                                await api.post('/profile/trigger-report');
+                                toast.success('Daily report triggered! Check your Email & Telegram.');
+                              } catch (e: any) {
+                                toast.error(e.response?.data?.message || 'Failed to trigger report');
+                              } finally {
+                                setTestingAlerts(false);
+                              }
+                            }}
+                            className="w-full h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3"
+                          >
+                            {testingAlerts
+                              ? <><Loader2 className="w-3 h-3 animate-spin mr-1.5" />Triggering...</>
+                              : <><Bell className="w-3 h-3 mr-1.5" />Test Daily Report Alerts</>}
+                          </Button>
                         </div>
 
                         {notifTelegram && (

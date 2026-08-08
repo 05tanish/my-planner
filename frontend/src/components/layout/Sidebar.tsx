@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Code2, FileText,
   BookMarked, Target, Briefcase, Library,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered
+  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered, Lightbulb
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -16,8 +16,9 @@ const NAV = [
   { label: 'Dashboard',       path: '/',           Icon: LayoutDashboard },
   { label: 'Priority',        path: '/priority',   Icon: ListOrdered },
   { label: 'Planner',         path: '/planner',    Icon: CalendarCheck },
-  { label: 'DSA Tracker',     path: '/dsa',        Icon: Code2 },
-  { label: 'Notes',           path: '/notes',      Icon: FileText },
+  { label: 'DSA Tracker',     path: '/dsa',            Icon: Code2 },
+  { label: 'DSA Concepts',    path: '/dsa-concepts',   Icon: Lightbulb },
+  { label: 'Notes',           path: '/notes',          Icon: FileText },
 
   { label: 'Resources',       path: '/resources',  Icon: BookMarked },
   { label: 'Placement Prep',  path: '/placement',  Icon: Target },

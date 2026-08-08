@@ -10,5 +10,6 @@ router.get('/', c.getProfile);
 router.patch('/', c.updateProfile);
 router.post('/logo', uploadSingle('logo'), c.uploadLogo);
 router.post('/telegram-link-pin', c.generateTelegramLinkPin);
+router.post('/trigger-report', c.triggerDailyReport);
 
 export default router;

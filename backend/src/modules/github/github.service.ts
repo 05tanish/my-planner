@@ -181,6 +181,9 @@ export const syncFromGitHubAPI = async (userId: string) => {
       create: { userId, date: targetDate, commits, repositories: Array.from(repos) },
       update: { commits, repositories: Array.from(repos) },
     });
+    // Trigger analytics snapshot update for this day so charts update
+    const { generateDailySnapshot } = await import('../analytics/analytics.service');
+    await generateDailySnapshot(userId, targetDate);
     synced++;
   }
 

@@ -69,9 +69,33 @@ export const updateTask = async (userId: string, id: string, data: any) => {
   const task = await prisma.task.findFirst({ where: { id, userId } });
   if (!task) throw new AppError('Task not found.', 404);
   const payload = { ...data };
-  if (payload.status === 'DONE' && task.status !== 'DONE' && !payload.completedAt) {
-    payload.completedAt = new Date();
+  
+  if (payload.status === 'DONE' && task.status !== 'DONE') {
+    if (!payload.completedAt) {
+      payload.completedAt = new Date();
+    }
+    
+    // Auto-update linked priority progress
+    if (task.priorityId) {
+      const priority = await prisma.priority.findUnique({ where: { id: task.priorityId } });
+      if (priority) {
+        // use task estimatedTime in hours, or default to priority's daily alloc
+        const hoursToAdd = task.estimatedTime ? (task.estimatedTime / 60) : priority.dailyHoursAlloc;
+        const newCompleted = Math.min(priority.hoursCompleted + hoursToAdd, priority.estimatedTotalHours);
+        const progress = Math.min(Math.round((newCompleted / Math.max(priority.estimatedTotalHours, 1)) * 100), 100);
+        
+        await prisma.priority.update({
+          where: { id: priority.id },
+          data: { 
+            hoursCompleted: newCompleted,
+            progress,
+            ...(progress >= 100 ? { status: 'COMPLETED', isActive: false, completedAt: new Date() } : {})
+          }
+        });
+      }
+    }
   }
+  
   return prisma.task.update({ where: { id }, data: payload });
 };
 

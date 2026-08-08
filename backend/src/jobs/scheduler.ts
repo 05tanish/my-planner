@@ -7,9 +7,12 @@ import { startV2Jobs } from './v2Jobs';
 import { runDailyResetJob } from './dailyReset.job';
 import { runPlatformSyncJob } from './platformSync.job';
 import { runDatabaseCleanupJob } from './cleanup.job';
+import { startDailyReportJob } from './dailyReport.job';
 
 export const initScheduler = () => {
   console.log('⏰ Initializing background job scheduler...');
+
+  startDailyReportJob();
 
   // 0. Database Cleanup - Daily at 3:00 AM
   cron.schedule('0 3 * * *', async () => {

@@ -27,6 +27,7 @@ const InterviewsPage    = lazy(() => import('../pages/InterviewsPage'));
 const OpportunitiesPage = lazy(() => import('../pages/OpportunitiesPage'));
 const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
 const AlertsPage        = lazy(() => import('../pages/AlertsPage'));
+const DsaConceptsPage  = lazy(() => import('../pages/DsaConceptsPage'));
 
 function PageLoader() {
   return (
@@ -111,6 +112,9 @@ export function AppRouter() {
         } />
         <Route path="/dsa" element={
           <Suspense fallback={<PageLoader />}><DSAPage /></Suspense>
+        } />
+        <Route path="/dsa-concepts" element={
+          <Suspense fallback={<PageLoader />}><DsaConceptsPage /></Suspense>
         } />
         <Route path="/notes" element={
           <Suspense fallback={<PageLoader />}><NotesPage /></Suspense>

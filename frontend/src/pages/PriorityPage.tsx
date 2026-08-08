@@ -63,6 +63,7 @@ function SortablePriorityCard({
 
   const remHours = priority.remainingHours ?? Math.max(priority.estimatedTotalHours - priority.hoursCompleted, 0);
   const remDays = priority.remainingDays ?? (priority.dailyHoursAlloc > 0 ? Math.ceil(remHours / priority.dailyHoursAlloc) : 0);
+  const remWeeks = priority.remainingWeeks ?? (remDays > 0 ? +(remDays / 7).toFixed(1) : 0);
 
   return (
     <div
@@ -74,6 +75,17 @@ function SortablePriorityCard({
         isDragging && 'opacity-50 border-primary cursor-grabbing shadow-lg'
       )}
     >
+      {/* Deadline Indicator */}
+      {priority.deadline && priority.status !== 'COMPLETED' && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-bold">
+          <Clock className="w-3 h-3" />
+          {(() => {
+            const days = Math.ceil((new Date(priority.deadline).getTime() - Date.now()) / 86400000);
+            return days < 0 ? 'Overdue' : `${days}d left`;
+          })()}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -130,7 +142,7 @@ function SortablePriorityCard({
       </div>
 
       {/* Time Allocation & Calculation Breakdown */}
-      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/20 text-center">
+      <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border/20 text-center">
         <div className="bg-secondary/30 rounded-lg p-2">
           <span className="text-[10px] text-muted-foreground block">Daily Alloc</span>
           <span className="text-xs font-bold text-foreground">{priority.dailyHoursAlloc}h/day</span>
@@ -140,8 +152,12 @@ function SortablePriorityCard({
           <span className="text-xs font-bold text-foreground">{remHours}h</span>
         </div>
         <div className="bg-secondary/30 rounded-lg p-2">
-          <span className="text-[10px] text-muted-foreground block">Est. Duration</span>
+          <span className="text-[10px] text-muted-foreground block">Est. Days</span>
           <span className="text-xs font-bold text-foreground">{remDays} days</span>
+        </div>
+        <div className="bg-secondary/30 rounded-lg p-2">
+          <span className="text-[10px] text-muted-foreground block">Est. Weeks</span>
+          <span className="text-xs font-bold text-purple-400">{remWeeks} wks</span>
         </div>
       </div>
 
@@ -349,13 +365,21 @@ export default function PriorityPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this priority from the queue?')) return;
+    if (!window.confirm('Delete this priority?')) return;
     try {
       await api.delete(`/priorities/${id}`);
-      toast.success('Priority deleted');
       fetchAll();
-    } catch (err) {
-      toast.error('Failed to delete priority');
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
+  };
+
+  const handleRequeue = async (id: string) => {
+    try {
+      await api.patch(`/priorities/${id}`, { status: 'NOT_STARTED' });
+      fetchAll();
+    } catch (error) {
+      console.error('Requeue failed:', error);
     }
   };
 
@@ -409,7 +433,7 @@ export default function PriorityPage() {
 
       {/* Overview Metric Bar */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Active Goal</span>
             <p className="text-sm font-bold text-foreground truncate">
@@ -428,11 +452,16 @@ export default function PriorityPage() {
           </div>
 
           <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Est. Weeks</span>
+            <p className="text-sm font-bold text-purple-400">{stats.totalWeeksRemaining ?? 0} wks</p>
+          </div>
+
+          <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Overall Progress</span>
             <p className="text-sm font-bold text-emerald-400">{stats.overallProgress}%</p>
           </div>
 
-          <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 col-span-2 lg:col-span-1">
+          <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Est. Timeline Finish</span>
             <p className="text-sm font-bold text-foreground">
               {stats.estimatedFinishDate ? new Date(stats.estimatedFinishDate).toLocaleDateString() : 'N/A'}
@@ -596,14 +625,43 @@ export default function PriorityPage() {
                   </div>
                 ) : (
                   completedPriorities.map((p) => (
-                    <div key={p.id} className="bg-card/60 border border-border/60 rounded-xl p-4 space-y-2 opacity-75">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-foreground line-through">{p.title}</h3>
+                    <div key={p.id} className="bg-card/60 border border-border/60 rounded-xl p-4 space-y-2 opacity-80 transition-opacity">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground line-through">{p.title}</h3>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Completed on {p.completedAt ? new Date(p.completedAt).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
                         <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px]">Finished</Badge>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        Completed on {p.completedAt ? new Date(p.completedAt).toLocaleDateString() : 'N/A'}
-                      </p>
+                      
+                      <div className="flex items-center gap-2 pt-2 border-t border-border/20 opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 text-xs flex-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => handleRequeue(p.id)}
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1.5" /> Requeue
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditDialog(p)}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
+                          onClick={() => handleDelete(p.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -715,6 +773,19 @@ export default function PriorityPage() {
                 onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
               />
             </div>
+
+            {/* Auto-calculated Est. Weeks Preview */}
+            {formData.estimatedTotalHours > 0 && formData.dailyHoursAlloc > 0 && (
+              <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-3 space-y-1">
+                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">Estimated Duration Preview</span>
+                <div className="flex gap-4 text-xs text-foreground font-semibold">
+                  <span>{Math.ceil((formData.estimatedTotalHours - formData.hoursCompleted) / formData.dailyHoursAlloc)} days</span>
+                  <span className="text-purple-400">
+                    ~{+(Math.ceil((formData.estimatedTotalHours - formData.hoursCompleted) / formData.dailyHoursAlloc) / 7).toFixed(1)} weeks
+                  </span>
+                </div>
+              </div>
+            )}
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="text-xs">

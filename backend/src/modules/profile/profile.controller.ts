@@ -56,3 +56,14 @@ export const generateTelegramLinkPin = async (req: AuthRequest, res: Response, n
     next(e);
   }
 };
+
+import { runDailyReportJob } from '../../jobs/dailyReport.job';
+
+export const triggerDailyReport = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await runDailyReportJob();
+    return sendSuccess(res, null, 'Daily report triggered successfully');
+  } catch (e) {
+    next(e);
+  }
+};

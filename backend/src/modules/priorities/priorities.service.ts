@@ -2,16 +2,22 @@ import prisma from '../../config/database';
 import { AppError } from '../../middleware/error.middleware';
 import { Prisma } from '@prisma/client';
 
+import { sendTelegramMessage } from '../../services/telegram.service';
+import { createTask, getTasks } from '../planner/planner.service';
+
 // Computed fields appended to every priority returned from the API
 function withComputedFields(p: any) {
   const remainingHours = Math.max(p.estimatedTotalHours - p.hoursCompleted, 0);
   const remainingDays = p.dailyHoursAlloc > 0
     ? Math.ceil(remainingHours / p.dailyHoursAlloc)
     : null;
+  const remainingWeeks = remainingDays !== null
+    ? +(remainingDays / 7).toFixed(1)
+    : null;
   const estimatedFinishDate = remainingDays !== null
     ? new Date(Date.now() + remainingDays * 86400000).toISOString()
     : null;
-  return { ...p, remainingHours, remainingDays, estimatedFinishDate };
+  return { ...p, remainingHours, remainingDays, remainingWeeks, estimatedFinishDate };
 }
 
 export const createPriority = async (userId: string, data: any) => {
@@ -44,6 +50,30 @@ export const createPriority = async (userId: string, data: any) => {
       isActive: !existingActive,
     },
   });
+
+  // Telegram alert if strict deadline is set
+  if (priority.deadline) {
+    const profile = await prisma.profile.findUnique({ where: { userId }, select: { telegramChatId: true, notifTelegram: true } });
+    if (profile?.telegramChatId && profile?.notifTelegram) {
+      await sendTelegramMessage(
+        profile.telegramChatId,
+        `🎯 <b>New Priority Deadline Target</b>\n\n<b>${priority.title}</b>\nMust be completed by: ${priority.deadline.toLocaleDateString()}`
+      );
+    }
+  }
+
+  // Auto-create daily task if active
+  if (priority.isActive && priority.dailyHoursAlloc > 0) {
+    await createTask(userId, {
+      title: `Priority: ${priority.title}`,
+      description: `Daily allocation: ${priority.dailyHoursAlloc}h. Target week: ${priority.deadline ? priority.deadline.toLocaleDateString() : 'N/A'}\n${priority.description || ''}`,
+      priority: priority.priorityLevel === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+      scope: 'DAILY',
+      category: priority.category || 'General',
+      estimatedTime: priority.dailyHoursAlloc * 60,
+      priorityId: priority.id
+    });
+  }
 
   return withComputedFields(priority);
 };
@@ -146,6 +176,24 @@ export const updatePriority = async (userId: string, id: string, data: any) => {
   }
 
   const updated = await prisma.priority.update({ where: { id }, data: payload });
+
+  // If newly activated, auto-create task
+  if (!priority.isActive && updated.isActive && updated.dailyHoursAlloc > 0) {
+    // Check if task already exists for today
+    const { tasks } = await getTasks(userId, { search: `Priority: ${updated.title}`, page: 1, limit: 1, date: new Date().toISOString() });
+    if (tasks.length === 0) {
+      await createTask(userId, {
+        title: `Priority: ${updated.title}`,
+        description: `Daily allocation: ${updated.dailyHoursAlloc}h. Target week: ${updated.deadline ? updated.deadline.toLocaleDateString() : 'N/A'}\n${updated.description || ''}`,
+        priority: updated.priorityLevel === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+        scope: 'DAILY',
+        category: updated.category || 'General',
+        estimatedTime: updated.dailyHoursAlloc * 60,
+        priorityId: updated.id
+      });
+    }
+  }
+
   return withComputedFields(updated);
 };
 
@@ -298,6 +346,10 @@ export const getStats = async (userId: string) => {
     ? new Date(Date.now() + totalDaysRemaining * 86400000).toISOString()
     : null;
 
+  const totalWeeksRemaining = totalDaysRemaining > 0
+    ? +(totalDaysRemaining / 7).toFixed(1)
+    : 0;
+
   return {
     activePriority: activePriority ? withComputedFields(activePriority) : null,
     nextPriority: nextPriority ? withComputedFields(nextPriority) : null,
@@ -306,6 +358,7 @@ export const getStats = async (userId: string) => {
     totalCompleted: completed.length,
     totalInQueue: inQueue.length,
     overallProgress,
+    totalWeeksRemaining,
     estimatedFinishDate,
   };
 };

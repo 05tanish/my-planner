@@ -64,7 +64,36 @@ export interface DsaProblem {
   revisions: DsaRevision[];
 }
 
-// ─── Tasks ────────────────────────────────────────────────────────────────────
+// ─── DSA Concepts ────────────────────────────────────────────────────────────
+export type DsaConceptCategory =
+  | 'Arrays' | 'Strings' | 'STL' | 'Trees' | 'Graphs' | 'DP'
+  | 'Bit Manipulation' | 'Math' | 'Sliding Window' | 'Binary Search'
+  | 'Linked List' | 'Stack' | 'Queue' | 'Heap' | 'Trie'
+  | 'Backtracking' | 'Greedy' | 'Hashing' | 'Recursion' | 'Sorting'
+  | 'Two Pointers' | 'Other';
+
+export type DsaConceptLanguage = 'C++' | 'Java' | 'Python' | 'JavaScript';
+
+export interface DsaConcept {
+  id: string;
+  userId: string;
+  topic: string;
+  category: string;
+  shortDescription?: string;
+  detailedNotes?: string;
+  codeSnippet?: string;
+  language: string;
+  leetcodeUrl?: string;
+  gfgUrl?: string;
+  codeforcesUrl?: string;
+  youtubeUrl?: string;
+  referenceLinks: string[];
+  tags: string[];
+  difficulty: DsaDifficulty;
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 export type TaskScope = 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -307,6 +336,7 @@ export interface Priority {
   updatedAt: string;
   remainingHours?: number;
   remainingDays?: number;
+  remainingWeeks?: number;
   estimatedFinishDate?: string;
 }
 
@@ -318,6 +348,7 @@ export interface PriorityStats {
   totalCompleted: number;
   totalInQueue: number;
   overallProgress: number;
+  totalWeeksRemaining: number;
   estimatedFinishDate: string | null;
 }
 
