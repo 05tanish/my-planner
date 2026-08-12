@@ -30,6 +30,7 @@ import hackathonsRouter from './modules/hackathons/hackathons.routes';
 import alertsRouter from './modules/alerts/alerts.routes';
 import prioritiesRouter from './modules/priorities/priorities.routes';
 import dsaConceptsRouter from './modules/dsa-concepts/dsa-concepts.routes';
+import aiRouter from './modules/ai/ai.routes';
 
 const app = express();
 
@@ -114,6 +115,7 @@ app.use('/api/hackathons', hackathonsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/priorities', prioritiesRouter);
 app.use('/api/dsa-concepts', dsaConceptsRouter);
+app.use('/api/ai', aiRouter);
 
 // Global Error Handler
 app.use(errorHandler);

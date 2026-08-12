@@ -4,7 +4,7 @@ import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
 import {
   FileText, Search, Plus, Star, Pin, Archive, Trash2, Folder, Tag, Save,
-  ArrowLeft, Loader2, Upload, Filter
+  ArrowLeft, Loader2, Upload, Filter, Sparkles
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Note } from '../types';
@@ -22,6 +22,7 @@ export function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [aiSummarizing, setAiSummarizing] = useState(false);
 
   // Selected note
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -210,6 +211,24 @@ export function NotesPage() {
       fetchNotes();
     } catch (err) {
       toast.error('Failed to delete note');
+    }
+  };
+
+  const handleAiSummarize = async () => {
+    if (!content || content.length < 30) {
+      toast.error('Note content is too short to summarize');
+      return;
+    }
+    setAiSummarizing(true);
+    try {
+      const res = await api.post('/ai/summarize-note', { content });
+      const summary = res.data.data.summary;
+      setContent(`## ✨ AI Summary\n${summary}\n\n---\n\n${content}`);
+      toast.success('AI summary prepended to note!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'AI summarization failed');
+    } finally {
+      setAiSummarizing(false);
     }
   };
 
@@ -431,6 +450,16 @@ export function NotesPage() {
                   <Trash2 className="w-4 h-4" />
                 </Button>
                 <div className="w-px h-6 bg-border mx-1" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={aiSummarizing}
+                  onClick={handleAiSummarize}
+                  className="h-8 px-3 gap-1.5 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/30 hover:border-violet-500/50 text-violet-300 hover:text-violet-200"
+                >
+                  {aiSummarizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  {aiSummarizing ? 'Summarizing...' : 'AI Summary'}
+                </Button>
                 <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground h-8 px-3">
                   <Save className="w-3.5 h-3.5 mr-1.5" /> Save
                 </Button>

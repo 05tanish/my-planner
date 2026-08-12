@@ -43,7 +43,8 @@ interface ImportJobData {
 export async function importJob(
   userId: string,
   data: ImportJobData,
-  screenshotFile?: Express.Multer.File
+  screenshotFile?: Express.Multer.File,
+  screenshotBase64?: string
 ) {
   const { job, metadata } = data;
 
@@ -80,7 +81,7 @@ export async function importJob(
     // DOM extraction was sufficient
     extractionStatus = 'DOM_EXTRACTED';
     extractionMethod = 'dom';
-  } else if (screenshotFile) {
+  } else if (screenshotFile || screenshotBase64) {
     // ─── 4. AI Extraction from Screenshot ───
     try {
       const partialData: Record<string, any> = {};
@@ -88,9 +89,25 @@ export async function importJob(
       if (job.company) partialData.company = job.company;
       if (job.location) partialData.location = job.location;
 
+      let buffer: Buffer;
+      let mimeType: string;
+
+      if (screenshotFile) {
+        buffer = screenshotFile.buffer;
+        mimeType = screenshotFile.mimetype;
+      } else {
+        // Parse base64 string (format: data:image/png;base64,iVBORw0KGgo...)
+        const matches = screenshotBase64!.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          throw new Error('Invalid base64 screenshot format');
+        }
+        mimeType = matches[1];
+        buffer = Buffer.from(matches[2], 'base64');
+      }
+
       const aiResult = await extractJobFromScreenshot(
-        screenshotFile.buffer,
-        screenshotFile.mimetype,
+        buffer,
+        mimeType,
         Object.keys(partialData).length > 0 ? partialData : undefined
       );
 

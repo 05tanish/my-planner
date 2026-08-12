@@ -5,7 +5,7 @@ import '@uiw/react-markdown-preview/markdown.css';
 import {
   Lightbulb, Plus, Search, Star, Edit2, Trash2, Copy, ExternalLink,
   ChevronDown, ChevronUp, Eye, X, Code2, ArrowUpDown, Filter, Loader2,
-  Link as LinkIcon, BookOpen, Video
+  Link as LinkIcon, BookOpen, Video, Sparkles
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { DsaConcept, DsaDifficulty } from '../types';
@@ -90,6 +90,10 @@ export function DsaConceptsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<DsaConcept | null>(null);
   const [editing, setEditing] = useState<DsaConcept | null>(null);
+
+  // AI Explain
+  const [aiExplanation, setAiExplanation] = useState<string>('');
+  const [aiExplaining, setAiExplaining] = useState(false);
 
   // Form
   const [form, setForm] = useState({ ...emptyForm });
@@ -233,6 +237,20 @@ export function DsaConceptsPage() {
   const openView = (concept: DsaConcept) => {
     setViewing(concept);
     setViewOpen(true);
+    setAiExplanation('');
+  };
+
+  const handleAiExplain = async (topic: string) => {
+    setAiExplaining(true);
+    try {
+      const res = await api.post('/ai/explain-dsa', { concept: topic });
+      setAiExplanation(res.data.data.explanation);
+      toast.success('AI explanation generated!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'AI explanation failed');
+    } finally {
+      setAiExplaining(false);
+    }
   };
 
   // ── Reference Links helpers ──────────────────────────────────────────────
@@ -747,6 +765,30 @@ export function DsaConceptsPage() {
                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground border-t pt-3">
                   <span>Created: {new Date(viewing.createdAt).toLocaleDateString()}</span>
                   <span>Updated: {new Date(viewing.updatedAt).toLocaleDateString()}</span>
+                </div>
+
+                {/* AI Explain Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-violet-400" /> AI Explanation
+                    </h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-7 text-xs bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/30 hover:border-violet-500/50 text-violet-300 hover:text-violet-200"
+                      disabled={aiExplaining}
+                      onClick={() => handleAiExplain(viewing.topic)}
+                    >
+                      {aiExplaining ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      {aiExplaining ? 'Generating...' : aiExplanation ? 'Regenerate' : 'Explain with AI'}
+                    </Button>
+                  </div>
+                  {aiExplanation && (
+                    <div className="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-4 bg-gradient-to-br from-violet-500/5 to-purple-500/5 border-violet-500/20" data-color-mode="dark">
+                      <MDEditor.Markdown source={aiExplanation} />
+                    </div>
+                  )}
                 </div>
               </div>
 

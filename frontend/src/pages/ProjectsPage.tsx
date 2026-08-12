@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Globe, Edit2, Trash2, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Plus, Search, Globe, Edit2, Trash2, CheckCircle2, Circle, Clock, Loader2, Sparkles } from 'lucide-react';
 import { Github } from '@/components/ui/BrandIcons';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import MDEditor from '@uiw/react-md-editor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -72,6 +73,11 @@ export default function ProjectsPage() {
   const [detailProject, setDetailProject] = useState<Project | null>(null);
   const [featureInput, setFeatureInput] = useState('');
 
+  // AI Readme State
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiReadme, setAiReadme] = useState<string>('');
+  const [showAiPanel, setShowAiPanel] = useState(false);
+
   const [form, setForm] = useState({ ...emptyForm });
   const [stats, setStats] = useState<any>(null);
 
@@ -82,9 +88,31 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       const res = await api.get('/projects');
-      setProjects(res.data.data);
-    } catch { toast.error('Failed to load projects'); }
+      setProjects(res.data.data.projects);
+    } catch { toast.error('Failed to fetch projects'); }
     finally { setLoading(false); }
+  };
+
+  const handleAiReadme = async (project: Project) => {
+    setAiGenerating(true);
+    setShowAiPanel(true);
+    setAiReadme('');
+    try {
+      const res = await api.post('/ai/generate-readme', {
+        project: {
+          name: project.name,
+          description: project.description,
+          techStack: project.techStack,
+          features: project.features.map(f => f.name),
+        }
+      });
+      setAiReadme(res.data.data.readme);
+      toast.success('README generated!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'AI generation failed');
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   const fetchStats = async () => {
@@ -381,8 +409,14 @@ export default function ProjectsPage() {
       </Dialog>
 
       {/* Project Detail Dialog */}
-      <Dialog open={!!detailProject} onOpenChange={() => setDetailProject(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!detailProject} onOpenChange={(open) => {
+        if (!open) {
+          setDetailProject(null);
+          setShowAiPanel(false);
+          setAiReadme('');
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {detailProject && (
             <>
               <DialogHeader>
@@ -393,12 +427,21 @@ export default function ProjectsPage() {
                       <DialogDescription className="mt-1">{detailProject.description}</DialogDescription>
                     )}
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => { setDetailProject(null); openEdit(detailProject); }}>
-                      <Edit2 className="w-3 h-3 mr-1" />Edit
+                  <div className="flex gap-2 shrink-0">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAiReadme(detailProject)}
+                      disabled={aiGenerating}
+                      className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                    >
+                      {aiGenerating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                      Generate README
                     </Button>
-                    <Button size="sm" variant="outline" className="text-destructive border-destructive/50" onClick={() => { setDetailProject(null); setDeleteId(detailProject.id); }}>
-                      <Trash2 className="w-3 h-3" />
+                    <Button size="sm" variant="outline" onClick={() => { setDetailProject(null); openEdit(detailProject); }}>
+                      <Edit2 className="w-3.5 h-3.5 mr-1.5" />Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => { setDetailProject(null); setDeleteId(detailProject.id); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -507,6 +550,29 @@ export default function ProjectsPage() {
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/40 p-3 rounded-lg">
                       {detailProject.architectureNotes || (detailProject as any).notes}
                     </p>
+                  </div>
+                )}
+                
+                {/* AI README Panel */}
+                {showAiPanel && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-violet-400" /> AI Generated README
+                      </h3>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAiPanel(false)} className="h-7 text-xs">
+                        Hide
+                      </Button>
+                    </div>
+                    {aiGenerating ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+                      </div>
+                    ) : aiReadme ? (
+                      <div className="p-4 bg-secondary/30 border border-border rounded-lg prose prose-sm dark:prose-invert max-w-none" data-color-mode="dark">
+                        <MDEditor.Markdown source={aiReadme} />
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>

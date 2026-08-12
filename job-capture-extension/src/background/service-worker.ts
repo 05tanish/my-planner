@@ -158,25 +158,20 @@ async function sendToBackend(payload: JobImportPayload): Promise<any> {
       return { success: false, error: 'Not authenticated. Please connect the extension.' };
     }
 
-    // Build FormData for multipart upload (screenshot as file)
-    const formData = new FormData();
-    formData.append('jobData', JSON.stringify({
+    // Send as JSON — service workers don't have FormData/Blob
+    const body = {
       job: payload.job,
       metadata: payload.metadata,
-    }));
-
-    if (payload.screenshot) {
-      // Convert base64 data URL to blob
-      const blob = dataUrlToBlob(payload.screenshot);
-      formData.append('screenshot', blob, 'screenshot.png');
-    }
+      screenshot: payload.screenshot || undefined, // base64 data URL
+    };
 
     const response = await fetch(`${backendUrl}/api/jobs/import`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'X-Extension-Token': token,
       },
-      body: formData,
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -275,21 +270,19 @@ async function sendToBackendDirect(payload: JobImportPayload): Promise<any> {
   const token = await getExtensionToken();
   if (!token) return { success: false, error: 'Not authenticated' };
 
-  const formData = new FormData();
-  formData.append('jobData', JSON.stringify({
+  const body = {
     job: payload.job,
     metadata: payload.metadata,
-  }));
-
-  if (payload.screenshot) {
-    const blob = dataUrlToBlob(payload.screenshot);
-    formData.append('screenshot', blob, 'screenshot.png');
-  }
+    screenshot: payload.screenshot || undefined,
+  };
 
   const response = await fetch(`${backendUrl}/api/jobs/import`, {
     method: 'POST',
-    headers: { 'X-Extension-Token': token },
-    body: formData,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Extension-Token': token,
+    },
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -328,13 +321,3 @@ function detectSiteFromUrl(url: string): string {
   }
 }
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const parts = dataUrl.split(',');
-  const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
-  const raw = atob(parts[1]);
-  const arr = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) {
-    arr[i] = raw.charCodeAt(i);
-  }
-  return new Blob([arr], { type: mime });
-}

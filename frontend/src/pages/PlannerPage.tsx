@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   Plus, Search, Calendar, CheckCircle2, Circle,
   Trash2, Edit2, Loader2, ArrowRight, ChevronLeft, ChevronRight,
-  CalendarArrowUp, Clock, AlertTriangle, Check
+  CalendarArrowUp, Clock, AlertTriangle, Check, Sparkles
 } from 'lucide-react';
 import { api } from '../lib/api';
+import MDEditor from '@uiw/react-md-editor';
 import type { Task, TaskPriority, TaskStatus, TaskScope } from '../types';
 import { TASK_PRIORITIES, TASK_SCOPES, TASK_STATUSES } from '../lib/constants';
 import { Button } from '../components/ui/button';
@@ -80,6 +81,11 @@ export function PlannerPage() {
   // Modals
   const [isOpen, setIsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // AI Schedule
+  const [aiSchedule, setAiSchedule] = useState<string>('');
+  const [aiScheduling, setAiScheduling] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -366,6 +372,31 @@ export function PlannerPage() {
     }
   };
 
+  const handleAiSchedule = async () => {
+    const todoItems = tasks.filter(t => t.status !== 'DONE');
+    if (todoItems.length === 0) {
+      toast.error('No pending tasks to schedule');
+      return;
+    }
+    setAiScheduling(true);
+    setShowAiPanel(true);
+    try {
+      const res = await api.post('/ai/schedule', {
+        tasks: todoItems.map(t => ({
+          title: t.title,
+          priority: t.priority,
+          estimatedMinutes: t.estimatedTime || 60,
+        }))
+      });
+      setAiSchedule(res.data.data.schedule);
+      toast.success('AI schedule generated!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'AI scheduling failed');
+    } finally {
+      setAiScheduling(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -408,8 +439,39 @@ export function PlannerPage() {
           <Button onClick={handleOpenAddModal} className="w-full sm:w-auto bg-primary text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" /> Add Task
           </Button>
+          <Button
+            onClick={handleAiSchedule}
+            disabled={aiScheduling}
+            className="w-full sm:w-auto gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+          >
+            {aiScheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {aiScheduling ? 'Thinking...' : '✨ AI Schedule'}
+          </Button>
         </div>
       </div>
+
+      {/* AI Schedule Result Panel */}
+      {showAiPanel && (
+        <div className="bg-gradient-to-br from-violet-500/5 to-purple-500/5 border border-violet-500/20 rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-400" /> AI Schedule Suggestion
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setShowAiPanel(false)} className="h-7 text-xs text-muted-foreground">
+              Dismiss
+            </Button>
+          </div>
+          {aiScheduling ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+            </div>
+          ) : aiSchedule ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none" data-color-mode="dark">
+              <MDEditor.Markdown source={aiSchedule} />
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Scope quick filter tabs */}
       <div className="flex gap-1 bg-secondary/30 p-1 border border-border rounded-lg max-w-md">

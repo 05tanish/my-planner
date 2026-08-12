@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Star, Clock, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Star, Clock, CheckCircle2, Edit2, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import MDEditor from '@uiw/react-md-editor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -62,6 +63,12 @@ export default function InterviewsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<InterviewQuestion | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // AI Mock Interview State
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiResult, setAiResult] = useState<string>('');
+  const [showAiDialog, setShowAiDialog] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
 
   useEffect(() => { fetchAll(); fetchStats(); }, []);
@@ -159,6 +166,24 @@ export default function InterviewsPage() {
     } catch { toast.error('Failed to mark revised'); }
   };
 
+  const handleAiGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiTopic.trim()) {
+      toast.error('Please enter a topic or job role');
+      return;
+    }
+    setAiGenerating(true);
+    try {
+      const res = await api.post('/ai/mock-interview', { topic: aiTopic });
+      setAiResult(res.data.data.questions);
+      toast.success('Mock questions generated!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'AI generation failed');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const diffColor = (d: string) => DIFFICULTIES.find(x => x.value === d)?.color ?? 'text-gray-500';
 
   if (loading) return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
@@ -171,7 +196,15 @@ export default function InterviewsPage() {
           <h1 className="text-3xl font-bold">Interview Vault</h1>
           <p className="text-muted-foreground">Master your interview preparation</p>
         </div>
-        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Question</Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowAiDialog(true)}
+            className="gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+          >
+            <Sparkles className="w-4 h-4" /> Generate Mock
+          </Button>
+          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Add Question</Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -345,6 +378,46 @@ export default function InterviewsPage() {
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Generator Dialog */}
+      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-violet-400" /> Generate Mock Interview
+            </DialogTitle>
+            <DialogDescription>Enter a topic, role, or technology to generate tailored practice questions.</DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleAiGenerate} className="flex gap-2 mt-4">
+            <Input 
+              placeholder="e.g., Senior React Developer, System Design, MongoDB..." 
+              value={aiTopic}
+              onChange={e => setAiTopic(e.target.value)}
+              className="flex-1"
+              required
+            />
+            <Button 
+              type="submit"
+              disabled={aiGenerating}
+              className="bg-violet-600 hover:bg-violet-700 text-white min-w-[120px]"
+            >
+              {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              Generate
+            </Button>
+          </form>
+
+          {aiResult && (
+            <div className="mt-4 p-5 bg-card border border-border rounded-lg prose prose-sm dark:prose-invert max-w-none" data-color-mode="dark">
+              <MDEditor.Markdown source={aiResult} />
+            </div>
+          )}
+          
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={() => setShowAiDialog(false)}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -145,4 +145,44 @@ Keep each section concise and practical.`;
       keyConcepts: ['basics', 'implementation', 'best-practices'],
     };
   },
+
+  /**
+   * Generic text generation using Gemini
+   */
+  async generateContent(prompt: string): Promise<string> {
+    if (!env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7 }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini API error ${response.status}: ${errText}`);
+      }
+
+      const result: any = await response.json();
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        throw new Error('No content generated');
+      }
+
+      return text;
+    } catch (error) {
+      console.error('❌ AI Generation Error:', error);
+      throw error;
+    }
+  }
 };

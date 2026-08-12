@@ -18,17 +18,22 @@ export const importJobHandler = async (
   try {
     const userId = req.user!.userId;
 
-    // Parse the JSON data from the multipart form
-    const rawData = req.body.jobData;
-    if (!rawData) {
-      return sendError(res, 'Missing jobData field', 400);
-    }
-
     let parsed: any;
-    try {
-      parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-    } catch {
-      return sendError(res, 'Invalid jobData JSON', 400);
+
+    // Support both JSON body and multipart/form-data
+    if (req.body.job && req.body.metadata) {
+      // JSON body format (from extension service worker)
+      parsed = { job: req.body.job, metadata: req.body.metadata };
+    } else if (req.body.jobData) {
+      // Legacy multipart/form-data format
+      const rawData = req.body.jobData;
+      try {
+        parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+      } catch {
+        return sendError(res, 'Invalid jobData JSON', 400);
+      }
+    } else {
+      return sendError(res, 'Missing job data', 400);
     }
 
     if (!parsed.job || !parsed.metadata) {
@@ -48,10 +53,11 @@ export const importJobHandler = async (
       parsed.job.description = parsed.job.description.slice(0, 10000); // Cap description length
     }
 
-    // Get screenshot file if uploaded
+    // Get screenshot: either from multer (file upload) or from JSON body (base64)
     const screenshotFile = req.file;
+    const screenshotBase64 = req.body.screenshot; // base64 data URL from JSON
 
-    // Validate screenshot if present
+    // Validate screenshot file if present (multipart upload)
     if (screenshotFile) {
       const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
       if (!allowedTypes.includes(screenshotFile.mimetype)) {
@@ -63,7 +69,7 @@ export const importJobHandler = async (
       }
     }
 
-    const result = await importJob(userId, parsed, screenshotFile);
+    const result = await importJob(userId, parsed, screenshotFile, screenshotBase64);
 
     return sendCreated(res, result, result.isDuplicate ? 'Job already exists' : 'Job captured');
   } catch (err) {
