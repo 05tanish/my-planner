@@ -143,6 +143,7 @@ export interface Note {
 
 // ─── Jobs ─────────────────────────────────────────────────────────────────────
 export type JobStatus = 'WISHLIST' | 'APPLIED' | 'OA' | 'INTERVIEW' | 'REJECTED' | 'OFFER' | 'SELECTED';
+export type ExtractionStatus = 'MANUAL' | 'PENDING' | 'DOM_EXTRACTED' | 'AI_EXTRACTED' | 'NEEDS_REVIEW' | 'MANUALLY_COMPLETED';
 
 export interface Job {
   id: string;
@@ -159,6 +160,23 @@ export interface Job {
   resumePath?: string;
   resumeSize?: number;
   resumeUploadedAt?: string;
+  // Job Capture Extension fields
+  description?: string;
+  employmentType?: string;
+  experienceMin?: number;
+  experienceMax?: number;
+  salaryMin?: number;
+  salaryMax?: number;
+  skills?: string[];
+  education?: string[];
+  source?: string;
+  sourceUrl?: string;
+  screenshotUrl?: string;
+  extractionStatus?: ExtractionStatus;
+  extractionMethod?: string;
+  extractionError?: string;
+  extractionConfidence?: number;
+  capturedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

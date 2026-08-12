@@ -14,7 +14,7 @@ import { cn } from '../lib/utils';
 
 export function SettingsPage() {
   const { user, setUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'users'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'users' | 'extension'>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -40,6 +40,12 @@ export function SettingsPage() {
   const [telegramPinExpiry, setTelegramPinExpiry] = useState<Date | null>(null);
   const [pinGenerating, setPinGenerating] = useState(false);
   const [pinCopied, setPinCopied] = useState(false);
+
+  // Chrome Extension State
+  const [extensionConnected, setExtensionConnected] = useState(false);
+  const [extensionLastUsed, setExtensionLastUsed] = useState<string | null>(null);
+  const [extensionToken, setExtensionToken] = useState('');
+  const [extensionTokenGenerating, setExtensionTokenGenerating] = useState(false);
 
   // File Upload State
   const [logoUploading, setLogoUploading] = useState(false);
@@ -96,6 +102,17 @@ export function SettingsPage() {
       })
       .catch(() => toast.error('Failed to load profile details'))
       .finally(() => setLoading(false));
+
+    loadExtensionStatus();
+  };
+
+  const loadExtensionStatus = () => {
+    api.get('/auth/extension-status')
+      .then(res => {
+        setExtensionConnected(res.data.data.connected);
+        setExtensionLastUsed(res.data.data.lastUsed);
+      })
+      .catch(console.error);
   };
 
   useEffect(() => {
@@ -364,6 +381,19 @@ export function SettingsPage() {
                   <ShieldCheck className="w-4 h-4" /> User Management
                 </button>
               )}
+              <button
+                onClick={() => {
+                  setActiveTab('extension');
+                }}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all text-left",
+                  activeTab === 'extension'
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                )}
+              >
+                <Code2 className="w-4 h-4" /> Chrome Extension
+              </button>
             </div>
           </div>
 
@@ -944,6 +974,119 @@ export function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* EXTENSION TAB */}
+          {activeTab === 'extension' && (
+            <div className="space-y-6">
+              <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                    <Code2 className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Job Capture Extension</h3>
+                    <p className="text-[11px] text-muted-foreground">Capture jobs directly from LinkedIn, Indeed, etc.</p>
+                  </div>
+                </div>
+
+                <div className="bg-secondary/30 rounded-lg p-4 mb-6 border border-border/50 text-sm text-zinc-300">
+                  <p className="mb-2">The Job Capture Extension allows you to one-click save jobs from any career site straight into your DevOS Job Tracker.</p>
+                  <p>To connect the extension, generate an access token below and paste it into the extension popup.</p>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Status Indicator */}
+                  <div className="flex items-center justify-between p-4 bg-secondary/20 border border-border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        extensionConnected ? "bg-emerald-500" : "bg-red-500"
+                      )} />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          Status: {extensionConnected ? 'Connected' : 'Not Connected'}
+                        </p>
+                        {extensionConnected && extensionLastUsed && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Last active: {new Date(extensionLastUsed).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {extensionConnected && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm('Are you sure you want to disconnect the extension? You will need to generate a new token to reconnect.')) return;
+                          try {
+                            await api.delete('/auth/extension-token');
+                            toast.success('Extension disconnected');
+                            setExtensionConnected(false);
+                            setExtensionToken('');
+                          } catch {
+                            toast.error('Failed to disconnect');
+                          }
+                        }}
+                      >
+                        Disconnect
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Token Generation */}
+                  {!extensionConnected && !extensionToken && (
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                      disabled={extensionTokenGenerating}
+                      onClick={async () => {
+                        setExtensionTokenGenerating(true);
+                        try {
+                          const res = await api.post('/auth/extension-token');
+                          setExtensionToken(res.data.data.token);
+                          toast.success('Token generated successfully');
+                        } catch {
+                          toast.error('Failed to generate token');
+                        } finally {
+                          setExtensionTokenGenerating(false);
+                        }
+                      }}
+                    >
+                      {extensionTokenGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+                      Generate Access Token
+                    </Button>
+                  )}
+
+                  {/* Display Generated Token */}
+                  {extensionToken && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2">
+                      <label className="text-xs font-semibold text-emerald-400">Your Access Token (Copy this now)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={extensionToken}
+                          className="font-mono text-xs bg-black/40 border-emerald-500/30 text-emerald-100"
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            navigator.clipboard.writeText(extensionToken);
+                            toast.success('Copied to clipboard');
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-amber-400 mt-2 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" />
+                        This token will not be shown again. Paste it into the extension to connect.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

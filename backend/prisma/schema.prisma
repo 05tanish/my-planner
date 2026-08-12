@@ -44,6 +44,7 @@ model User {
   books                Book[]
   jobs                 Job[]
   resumes              Resume[]
+  extensionTokens      ExtensionToken[]
   learningEntries      LearningEntry[] // kept for migration compatibility — table will be emptied
   placementNotes       PlacementNote[]
   githubActivities     GithubActivity[]
@@ -366,6 +367,15 @@ enum JobStatus {
   SELECTED
 }
 
+enum ExtractionStatus {
+  MANUAL              // jobs created manually (existing behavior, default)
+  PENDING
+  DOM_EXTRACTED
+  AI_EXTRACTED
+  NEEDS_REVIEW
+  MANUALLY_COMPLETED
+}
+
 model Job {
   id          String    @id @default(cuid())
   userId      String
@@ -382,10 +392,47 @@ model Job {
   resumePath       String?   // resume URL or path
   resumeSize       Int?      // size in bytes
   resumeUploadedAt DateTime?
+
+  // ─── Job Capture Extension Fields ───
+  description          String?
+  employmentType       String?
+  experienceMin        Int?
+  experienceMax        Int?
+  salaryMin            Int?
+  salaryMax            Int?
+  skills               String[]
+  education            String[]
+  source               String?            // "linkedin", "indeed", "naukri", "other"
+  sourceUrl            String?            // canonical job URL
+  screenshotUrl        String?
+  extractionStatus     ExtractionStatus   @default(MANUAL)
+  extractionMethod     String?            // "dom", "screenshot_ai"
+  extractionError      String?
+  extractionConfidence Float?
+  capturedAt           DateTime?
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   resume      Resume?   @relation(fields: [resumeId], references: [id])
+
+  @@index([userId])
+  @@index([sourceUrl])
+}
+
+// ─────────────────────────────────────────────
+// EXTENSION AUTH
+// ─────────────────────────────────────────────
+
+model ExtensionToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  name      String   @default("Chrome Extension")
+  lastUsed  DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

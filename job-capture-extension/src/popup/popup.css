@@ -1,0 +1,309 @@
+/* ─── DevOS Job Capture — Popup Styles ─── */
+:root {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-hover: #1f2b47;
+  --text-primary: #e8e8f0;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-primary: #7c3aed;
+  --accent-secondary: #6d28d9;
+  --accent-glow: rgba(124, 58, 237, 0.3);
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.2);
+  --error: #ef4444;
+  --error-glow: rgba(239, 68, 68, 0.2);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(124, 58, 237, 0.3);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  width: 360px;
+  min-height: 200px;
+  overflow-x: hidden;
+}
+
+#app {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Header ─── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-icon {
+  font-size: 18px;
+  -webkit-text-fill-color: initial;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.connected {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success-glow);
+}
+
+.status-dot.disconnected {
+  background: var(--error);
+  box-shadow: 0 0 6px var(--error-glow);
+}
+
+/* ─── Views ─── */
+.view { display: flex; flex-direction: column; gap: 12px; }
+.hidden { display: none !important; }
+
+/* ─── Empty / Not Connected ─── */
+.empty-state {
+  text-align: center;
+  padding: 20px 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty-icon { font-size: 32px; margin-bottom: 10px; }
+.hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.token-input-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.token-input-group input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.token-input-group input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* ─── Sections ─── */
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.site-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.page-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.page-status.detected { color: var(--success); }
+.page-status.not-detected { color: var(--warning); }
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-full { width: 100%; }
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--accent-primary);
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.btn-ghost:hover { background: var(--bg-hover); }
+
+/* ─── Progress Steps ─── */
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: color 0.3s;
+}
+
+.progress-step.active { color: var(--text-primary); }
+.progress-step.done { color: var(--success); }
+.progress-step.error { color: var(--error); }
+.progress-step.skipped { color: var(--text-muted); opacity: 0.5; }
+
+.step-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ─── Result ─── */
+#resultContent {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.result-success {
+  color: var(--success);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result-warning {
+  color: var(--warning);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result-error {
+  color: var(--error);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.result-detail {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ─── Queue Badge ─── */
+.queue-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--warning);
+  background: var(--warning-glow);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Animations ─── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.spinning { animation: spin 1s linear infinite; display: inline-block; }
+.pulsing { animation: pulse 1.5s ease-in-out infinite; }

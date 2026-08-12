@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Plus, Search, ExternalLink, Calendar, DollarSign, MapPin,
-  Trash2, Edit2, Loader2, FileText, Upload, Star, X, Eye, Download, RefreshCw
+  Trash2, Edit2, Loader2, FileText, Upload, Star, X, Eye, Download, RefreshCw,
+  Camera, AlertTriangle
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Job, JobStatus } from '../types';
@@ -14,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '../components/ui/dialog';
 import { cn } from '../lib/utils';
+import { JobReviewModal } from '../components/job-review-modal';
 
 interface Resume {
   id: string; name: string; fileUrl: string; fileName: string;
@@ -39,6 +41,9 @@ export function JobsPage() {
   // PDF Preview Modal State
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewPdfTitle, setPreviewPdfTitle] = useState<string>('');
+
+  // Job Review Modal State
+  const [reviewingJob, setReviewingJob] = useState<Job | null>(null);
 
   const fetchResumes = async () => {
     try { const r = await api.get('/jobs/resumes'); setResumes(r.data.data || []); }
@@ -440,6 +445,38 @@ export function JobsPage() {
                         <p className="text-[11px] text-muted-foreground mt-0.5 leading-normal">{job.role}</p>
                       </div>
 
+                      {/* Extraction Status Badge */}
+                      {job.extractionStatus && job.extractionStatus !== 'MANUAL' && (
+                        <div className="flex items-center gap-1.5">
+                          {job.extractionStatus === 'DOM_EXTRACTED' && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                              ✓ DOM
+                            </Badge>
+                          )}
+                          {job.extractionStatus === 'AI_EXTRACTED' && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-violet-500/10 text-violet-400 border-violet-500/20">
+                              ✓ AI
+                            </Badge>
+                          )}
+                          {job.extractionStatus === 'NEEDS_REVIEW' && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-400 border-amber-500/20 cursor-pointer"
+                              onClick={() => setReviewingJob(job)}>
+                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" /> Review
+                            </Badge>
+                          )}
+                          {job.extractionStatus === 'MANUALLY_COMPLETED' && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-500/10 text-blue-400 border-blue-500/20">
+                              ✓ Reviewed
+                            </Badge>
+                          )}
+                          {job.source && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-zinc-500/10 text-zinc-400 border-zinc-500/20 capitalize">
+                              <Camera className="w-2.5 h-2.5 mr-0.5" /> {job.source}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
                       {/* Details row */}
                       <div className="space-y-1 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
                         {job.location && (
@@ -743,6 +780,19 @@ export function JobsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Job Review Modal */}
+      {reviewingJob && (
+        <JobReviewModal
+          job={reviewingJob}
+          open={!!reviewingJob}
+          onClose={() => setReviewingJob(null)}
+          onSaved={(updated) => {
+            setJobs(prev => prev.map(j => j.id === updated.id ? updated : j));
+            setReviewingJob(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,129 @@
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import { sendSuccess, sendError } from '../../utils/response';
+import prisma from '../../config/database';
+import crypto from 'crypto';
+
+/**
+ * POST /api/auth/extension-token
+ * Generate a token for the Chrome Extension (requires authenticated session).
+ */
+export const generateExtensionToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.userId;
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(48).toString('hex');
+
+    // Delete any existing tokens for this user (one extension per user)
+    await prisma.extensionToken.deleteMany({ where: { userId } });
+
+    // Create new token — expires in 90 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 90);
+
+    await prisma.extensionToken.create({
+      data: {
+        userId,
+        token,
+        expiresAt,
+      },
+    });
+
+    return sendSuccess(res, { token, expiresAt: expiresAt.toISOString() }, 'Extension token generated');
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/auth/extension-verify
+ * Verify an extension token (used by extension to check if connected).
+ */
+export const verifyExtensionToken = async (
+  req: AuthRequest & { body: { token: string } },
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return sendError(res, 'Token is required', 400);
+    }
+
+    const record = await prisma.extensionToken.findUnique({
+      where: { token },
+      include: {
+        user: {
+          select: { id: true, email: true, role: true },
+        },
+      },
+    });
+
+    if (!record || record.expiresAt < new Date()) {
+      return sendError(res, 'Invalid or expired token', 401);
+    }
+
+    // Update last used
+    await prisma.extensionToken.update({
+      where: { id: record.id },
+      data: { lastUsed: new Date() },
+    });
+
+    return sendSuccess(res, {
+      userId: record.user.id,
+      email: record.user.email,
+    }, 'Token verified');
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /api/auth/extension-token
+ * Revoke extension token (disconnect extension).
+ */
+export const revokeExtensionToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.userId;
+    await prisma.extensionToken.deleteMany({ where: { userId } });
+    return sendSuccess(res, null, 'Extension disconnected');
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/auth/extension-status
+ * Check if user has an active extension connection.
+ */
+export const getExtensionStatus = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.userId;
+    const token = await prisma.extensionToken.findFirst({
+      where: { userId, expiresAt: { gt: new Date() } },
+      select: { id: true, lastUsed: true, expiresAt: true, createdAt: true },
+    });
+
+    return sendSuccess(res, {
+      connected: !!token,
+      lastUsed: token?.lastUsed,
+      expiresAt: token?.expiresAt,
+      connectedAt: token?.createdAt,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevOS Job Capture</title>
+  <link rel="stylesheet" href="popup.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">
+        <span class="header-icon">💼</span>
+        <span>Job Capture</span>
+      </div>
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-dot disconnected"></span>
+        <span id="connectionText">Not connected</span>
+      </div>
+    </div>
+
+    <!-- Not Connected State -->
+    <div id="notConnectedView" class="view">
+      <div class="empty-state">
+        <div class="empty-icon">🔗</div>
+        <p>Extension not connected to DevOS</p>
+        <p class="hint">Go to DevOS Settings → Chrome Extension to connect</p>
+        <div class="token-input-group">
+          <input type="text" id="tokenInput" placeholder="Paste extension token..." />
+          <button id="connectBtn" class="btn btn-primary btn-sm">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Capture View -->
+    <div id="captureView" class="view hidden">
+      <!-- Page Detection -->
+      <div class="section" id="pageInfo">
+        <div class="section-label">Current Page</div>
+        <div class="site-name" id="siteName">Detecting...</div>
+        <div class="page-status" id="pageStatus">
+          <span class="status-icon">⏳</span>
+          <span id="pageStatusText">Analyzing page...</span>
+        </div>
+      </div>
+
+      <!-- Capture Button -->
+      <button id="captureBtn" class="btn btn-primary btn-full" disabled>
+        <span id="captureBtnIcon">📥</span>
+        <span id="captureBtnText">Capture & Save Job</span>
+      </button>
+
+      <!-- Progress Steps -->
+      <div id="progressSection" class="section hidden">
+        <div class="progress-step" id="stepDetect">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">Detecting page</span>
+        </div>
+        <div class="progress-step" id="stepExtract">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">Reading job information</span>
+        </div>
+        <div class="progress-step" id="stepValidate">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">Validating data</span>
+        </div>
+        <div class="progress-step" id="stepScreenshot">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">Screenshot capture</span>
+        </div>
+        <div class="progress-step" id="stepAI">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">AI extraction</span>
+        </div>
+        <div class="progress-step" id="stepSave">
+          <span class="step-icon">⏳</span>
+          <span class="step-text">Saving to DevOS</span>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="resultSection" class="section hidden">
+        <div id="resultContent"></div>
+      </div>
+    </div>
+
+    <!-- Pending Queue Badge -->
+    <div id="queueSection" class="section hidden">
+      <div class="queue-badge">
+        <span>📤</span>
+        <span id="queueCount">0</span> pending sync
+        <button id="syncNowBtn" class="btn btn-sm btn-ghost">Sync Now</button>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

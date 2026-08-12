@@ -1,0 +1,14 @@
+{
+  "name": "devos-job-capture-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.28.2",
+    "fs-extra": "^11.4.0",
+    "typescript": "^5.7.2"
+  }
+}

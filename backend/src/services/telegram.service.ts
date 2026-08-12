@@ -30,6 +30,17 @@ if (env.TELEGRAM_BOT_TOKEN) {
   console.log('🤖 [Telegram Bot Not Configured] Running in mock mode');
 }
 
+export const stopTelegramBot = async () => {
+  if (bot) {
+    try {
+      await bot.stopPolling();
+      console.log('🛑 Telegram bot polling stopped.');
+    } catch (err) {
+      console.error('❌ Error stopping Telegram bot polling:', err);
+    }
+  }
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const sendTelegramMessage = async (chatId: string, text: string) => {

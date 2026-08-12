@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as authController from './auth.controller';
+import * as extAuthController from './extension-auth.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authLimiter } from '../../middleware/rateLimit.middleware';
 
@@ -15,5 +16,11 @@ router.post('/reset-password', authLimiter, authController.resetPassword);
 router.post('/change-password', authenticate, authController.changePassword);
 router.get('/sessions', authenticate, authController.getSessions);
 router.delete('/sessions/:sessionId', authenticate, authController.revokeSession);
+
+// Extension Auth
+router.post('/extension-token', authenticate, extAuthController.generateExtensionToken);
+router.post('/extension-verify', extAuthController.verifyExtensionToken);
+router.delete('/extension-token', authenticate, extAuthController.revokeExtensionToken);
+router.get('/extension-status', authenticate, extAuthController.getExtensionStatus);
 
 export default router;

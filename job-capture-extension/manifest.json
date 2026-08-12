@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "DevOS Job Capture",
+  "version": "1.0.0",
+  "description": "Capture job postings from any website and save them to your DevOS Job Tracker.",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "DevOS Job Capture"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

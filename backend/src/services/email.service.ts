@@ -10,18 +10,21 @@ if (resend) {
 }
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
+  // OVERRIDE: Send all emails to the specified address during development
+  const overrideTo = 'tanishjain626@gmail.com';
+  
   if (resend) {
     try {
       const { error } = await resend.emails.send({
         from: env.EMAIL_FROM || 'DevOS <onboarding@resend.dev>',
-        to,
+        to: overrideTo,
         subject,
         html,
       });
       if (error) {
-        console.error(`❌ Resend error sending to ${to}:`, error);
+        console.error(`❌ Resend error sending to ${overrideTo} (originally meant for ${to}):`, error);
       } else {
-        console.log(`✉️  Email sent via Resend to ${to}: ${subject}`);
+        console.log(`✉️  Email sent via Resend to ${overrideTo} (originally meant for ${to}): ${subject}`);
       }
     } catch (err) {
       console.error(`❌ Failed to send email to ${to}:`, err);

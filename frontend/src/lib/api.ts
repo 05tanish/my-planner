@@ -2,7 +2,8 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  // Use VITE_API_URL if provided, else use relative /api to hit the Vite proxy in local dev (prevents cross-origin cookie drops)
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
   // withCredentials=true sends the httpOnly 'access_token' cookie automatically
   withCredentials: true,

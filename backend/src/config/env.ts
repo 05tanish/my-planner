@@ -34,6 +34,9 @@ const envSchema = z.object({
 
   // OpenAI (optional — used for AI research features)
   OPENAI_API_KEY: z.string().optional(),
+
+  // Gemini (optional — used for Vision AI job extraction)
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

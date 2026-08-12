@@ -58,6 +58,12 @@ const startServer = async () => {
       console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
       server.close(async () => {
         console.log('💤 Express server closed.');
+        try {
+          const { stopTelegramBot } = await import('./services/telegram.service');
+          await stopTelegramBot();
+        } catch (e) {
+          console.error('Error stopping telegram bot:', e);
+        }
         await prisma.$disconnect();
         console.log('🔌 Database connection closed.');
         process.exit(0);
