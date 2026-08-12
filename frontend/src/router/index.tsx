@@ -53,8 +53,17 @@ class ChunkErrorBoundary extends Component<
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    const isChunkError =
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError';
+      
+    if (isChunkError) {
+      return { hasError: true };
+    }
+    // Don't catch normal rendering errors here, let Vite's overlay handle them in dev
+    return { hasError: false };
   }
 
   componentDidCatch(error: Error) {
