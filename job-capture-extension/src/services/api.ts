@@ -2,7 +2,7 @@
 // Handles communication between the Chrome Extension and the DevOS backend.
 // Stores and retrieves the auth token from chrome.storage.local.
 
-const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+const DEFAULT_BACKEND_URL = 'https://devos-backend-production-6025.up.railway.app';
 
 /** Get the backend URL from storage, with fallback */
 export async function getBackendUrl(): Promise<string> {
