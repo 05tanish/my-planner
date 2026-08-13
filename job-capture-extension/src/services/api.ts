@@ -6,8 +6,7 @@ const DEFAULT_BACKEND_URL = 'https://devos-backend-production-6025.up.railway.ap
 
 /** Get the backend URL from storage, with fallback */
 export async function getBackendUrl(): Promise<string> {
-  const result = await chrome.storage.local.get('backendUrl');
-  return result.backendUrl || DEFAULT_BACKEND_URL;
+  return DEFAULT_BACKEND_URL;
 }
 
 /** Get the stored extension auth token */

@@ -300,8 +300,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 // ─── Utilities ───
 async function getBackendUrl(): Promise<string> {
-  const result = await chrome.storage.local.get('backendUrl');
-  return result.backendUrl || 'https://devos-backend-production-6025.up.railway.app';
+  return 'https://devos-backend-production-6025.up.railway.app';
 }
 
 async function getExtensionToken(): Promise<string | null> {
