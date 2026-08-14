@@ -21,6 +21,7 @@ router.delete('/sessions/:sessionId', authenticate, authController.revokeSession
 router.post('/extension-token', authenticate, extAuthController.generateExtensionToken);
 router.post('/extension-verify', extAuthController.verifyExtensionToken);
 router.delete('/extension-token', authenticate, extAuthController.revokeExtensionToken);
+router.delete('/extension-token/:id', authenticate, extAuthController.revokeSpecificExtensionToken);
 router.get('/extension-status', authenticate, extAuthController.getExtensionStatus);
 
 export default router;

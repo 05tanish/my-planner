@@ -42,8 +42,8 @@ export function SettingsPage() {
   const [pinCopied, setPinCopied] = useState(false);
 
   // Chrome Extension State
-  const [extensionConnected, setExtensionConnected] = useState(false);
-  const [extensionLastUsed, setExtensionLastUsed] = useState<string | null>(null);
+  const [extensionTokens, setExtensionTokens] = useState<any[]>([]);
+  const [extensionTokenName, setExtensionTokenName] = useState('Chrome Extension');
   const [extensionToken, setExtensionToken] = useState('');
   const [extensionTokenGenerating, setExtensionTokenGenerating] = useState(false);
 
@@ -109,8 +109,7 @@ export function SettingsPage() {
   const loadExtensionStatus = () => {
     api.get('/auth/extension-status')
       .then(res => {
-        setExtensionConnected(res.data.data.connected);
-        setExtensionLastUsed(res.data.data.lastUsed);
+        setExtensionTokens(res.data.data.tokens || []);
       })
       .catch(console.error);
   };
@@ -997,70 +996,85 @@ export function SettingsPage() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Status Indicator */}
-                  <div className="flex items-center justify-between p-4 bg-secondary/20 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        extensionConnected ? "bg-emerald-500" : "bg-red-500"
-                      )} />
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          Status: {extensionConnected ? 'Connected' : 'Not Connected'}
-                        </p>
-                        {extensionConnected && extensionLastUsed && (
-                          <p className="text-[11px] text-muted-foreground">
-                            Last active: {new Date(extensionLastUsed).toLocaleString()}
-                          </p>
-                        )}
+                  {/* Status Indicator & List */}
+                  {extensionTokens.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Active Connectors</p>
+                      <div className="grid gap-3">
+                        {extensionTokens.map(token => (
+                          <div key={token.id} className="flex items-center justify-between p-3 bg-secondary/20 border border-border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{token.name}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {token.lastUsed ? `Last active: ${new Date(token.lastUsed).toLocaleString()}` : 'Never used'}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 text-[10px] px-2"
+                              onClick={async () => {
+                                if (!confirm(`Are you sure you want to disconnect "${token.name}"?`)) return;
+                                try {
+                                  await api.delete(`/auth/extension-token/${token.id}`);
+                                  toast.success('Connector revoked');
+                                  loadExtensionStatus();
+                                } catch {
+                                  toast.error('Failed to disconnect');
+                                }
+                              }}
+                            >
+                              Revoke
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    {extensionConnected && (
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 bg-secondary/20 border border-border rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <p className="text-sm font-semibold text-foreground">No Active Connectors</p>
+                    </div>
+                  )}
+
+                  {/* Token Generation */}
+                  {!extensionToken ? (
+                    <div className="bg-secondary/20 border border-border rounded-lg p-4 space-y-3">
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">Add New Connector</h4>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-muted-foreground">Connector Name</label>
+                        <Input 
+                          placeholder="e.g. Work Macbook" 
+                          value={extensionTokenName}
+                          onChange={e => setExtensionTokenName(e.target.value)}
+                          className="text-xs h-8"
+                        />
+                      </div>
                       <Button
-                        variant="destructive"
-                        size="sm"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"
+                        disabled={extensionTokenGenerating || !extensionTokenName.trim()}
                         onClick={async () => {
-                          if (!confirm('Are you sure you want to disconnect the extension? You will need to generate a new token to reconnect.')) return;
+                          setExtensionTokenGenerating(true);
                           try {
-                            await api.delete('/auth/extension-token');
-                            toast.success('Extension disconnected');
-                            setExtensionConnected(false);
-                            setExtensionToken('');
+                            const res = await api.post('/auth/extension-token', { name: extensionTokenName });
+                            setExtensionToken(res.data.data.token);
+                            toast.success('Token generated successfully');
+                            loadExtensionStatus();
                           } catch {
-                            toast.error('Failed to disconnect');
+                            toast.error('Failed to generate token');
+                          } finally {
+                            setExtensionTokenGenerating(false);
                           }
                         }}
                       >
-                        Disconnect
+                        {extensionTokenGenerating ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <KeyRound className="w-3 h-3 mr-2" />}
+                        Generate Access Token
                       </Button>
-                    )}
-                  </div>
-
-                  {/* Token Generation */}
-                  {!extensionConnected && !extensionToken && (
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                      disabled={extensionTokenGenerating}
-                      onClick={async () => {
-                        setExtensionTokenGenerating(true);
-                        try {
-                          const res = await api.post('/auth/extension-token');
-                          setExtensionToken(res.data.data.token);
-                          toast.success('Token generated successfully');
-                        } catch {
-                          toast.error('Failed to generate token');
-                        } finally {
-                          setExtensionTokenGenerating(false);
-                        }
-                      }}
-                    >
-                      {extensionTokenGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
-                      Generate Access Token
-                    </Button>
-                  )}
-
-                  {/* Display Generated Token */}
-                  {extensionToken && (
+                    </div>
+                  ) : (
                     <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2">
                       <label className="text-xs font-semibold text-emerald-400">Your Access Token (Copy this now)</label>
                       <div className="flex gap-2">
@@ -1083,6 +1097,16 @@ export function SettingsPage() {
                         <ShieldCheck className="w-3 h-3" />
                         This token will not be shown again. Paste it into the extension to connect.
                       </p>
+                      <Button
+                        variant="outline"
+                        className="w-full h-8 text-xs mt-3"
+                        onClick={() => {
+                          setExtensionToken('');
+                          setExtensionTokenName('Chrome Extension');
+                        }}
+                      >
+                        Done
+                      </Button>
                     </div>
                   )}
                 </div>

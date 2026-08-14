@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Globe, Edit2, Trash2, CheckCircle2, Circle, Clock, Loader2, Sparkles } from 'lucide-react';
 import { Github } from '@/components/ui/BrandIcons';
 import { api } from '@/lib/api';
@@ -59,7 +59,6 @@ const emptyForm = {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filtered, setFiltered] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -82,16 +81,31 @@ export default function ProjectsPage() {
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => { fetchProjects(); fetchStats(); }, []);
-  useEffect(() => { applyFilter(); }, [projects, activeTab, search]);
 
-  const fetchProjects = async () => {
+  // Compute filtered list synchronously — no extra state, no re-render loop
+  const filtered = useMemo(() => {
+    let f = [...(projects ?? [])];
+    if (activeTab !== 'all') f = f.filter(p => p.status === activeTab.toUpperCase());
+    if (search) f = f.filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description?.toLowerCase().includes(search.toLowerCase()) ||
+      p.techStack.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    );
+    return f;
+  }, [projects, activeTab, search]);
+
+  const fetchProjects = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get('/projects');
-      setProjects(res.data.data.projects);
-    } catch { toast.error('Failed to fetch projects'); }
-    finally { setLoading(false); }
+      // Backend returns { success, data: Project[] } — so res.data.data is the array
+      setProjects(res.data.data ?? []);
+    } catch { if (!silent) toast.error('Failed to fetch projects'); }
+    finally { if (!silent) setLoading(false); }
   };
+
+  // Silent refresh — used after mutations so the page never re-shows the loading spinner
+  const refreshProjects = () => fetchProjects(true);
 
   const handleAiReadme = async (project: Project) => {
     setAiGenerating(true);
@@ -122,17 +136,6 @@ export default function ProjectsPage() {
     } catch { /* silent */ }
   };
 
-  const applyFilter = () => {
-    let f = [...projects];
-    if (activeTab !== 'all') f = f.filter(p => p.status === activeTab.toUpperCase());
-    if (search) f = f.filter(p =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description?.toLowerCase().includes(search.toLowerCase()) ||
-      p.techStack.some(t => t.toLowerCase().includes(search.toLowerCase()))
-    );
-    setFiltered(f);
-  };
-
   const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setFormOpen(true); };
   const openEdit = (p: Project) => {
     setEditing(p);
@@ -160,8 +163,8 @@ export default function ProjectsPage() {
         toast.success('Project created');
       }
       setFormOpen(false);
-      fetchProjects();
       fetchStats();
+      refreshProjects();
     } catch { toast.error('Failed to save project'); }
   };
 
@@ -172,8 +175,8 @@ export default function ProjectsPage() {
       toast.success('Project deleted');
       if (detailProject?.id === deleteId) setDetailProject(null);
       setDeleteId(null);
-      fetchProjects();
       fetchStats();
+      refreshProjects();
     } catch { toast.error('Failed to delete project'); }
   };
 
@@ -190,7 +193,7 @@ export default function ProjectsPage() {
       setFeatureInput('');
       const res = await api.get(`/projects/${detailProject.id}`);
       setDetailProject(res.data.data);
-      fetchProjects();
+      refreshProjects();
     } catch { toast.error('Failed to add feature'); }
   };
 
@@ -201,7 +204,7 @@ export default function ProjectsPage() {
       await api.patch(`/projects/features/${feature.id}`, { status: next });
       const res = await api.get(`/projects/${detailProject.id}`);
       setDetailProject(res.data.data);
-      fetchProjects();
+      refreshProjects();
     } catch { toast.error('Failed to update feature'); }
   };
 
@@ -211,7 +214,7 @@ export default function ProjectsPage() {
       await api.delete(`/projects/features/${featureId}`);
       const res = await api.get(`/projects/${detailProject.id}`);
       setDetailProject(res.data.data);
-      fetchProjects();
+      refreshProjects();
     } catch { toast.error('Failed to delete feature'); }
   };
 

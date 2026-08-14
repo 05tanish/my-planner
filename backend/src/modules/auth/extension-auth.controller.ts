@@ -16,11 +16,10 @@ export const generateExtensionToken = async (
   try {
     const userId = req.user!.userId;
 
+    const name = req.body.name || 'Chrome Extension';
+
     // Generate a secure random token
     const token = crypto.randomBytes(48).toString('hex');
-
-    // Delete any existing tokens for this user (one extension per user)
-    await prisma.extensionToken.deleteMany({ where: { userId } });
 
     // Create new token — expires in 90 days
     const expiresAt = new Date();
@@ -30,6 +29,7 @@ export const generateExtensionToken = async (
       data: {
         userId,
         token,
+        name,
         expiresAt,
       },
     });
@@ -112,17 +112,35 @@ export const getExtensionStatus = async (
 ) => {
   try {
     const userId = req.user!.userId;
-    const token = await prisma.extensionToken.findFirst({
+    const tokens = await prisma.extensionToken.findMany({
       where: { userId, expiresAt: { gt: new Date() } },
-      select: { id: true, lastUsed: true, expiresAt: true, createdAt: true },
+      select: { id: true, name: true, lastUsed: true, expiresAt: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
     });
 
     return sendSuccess(res, {
-      connected: !!token,
-      lastUsed: token?.lastUsed,
-      expiresAt: token?.expiresAt,
-      connectedAt: token?.createdAt,
+      connected: tokens.length > 0,
+      tokens,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /api/auth/extension-token/:id
+ * Revoke a specific extension token.
+ */
+export const revokeSpecificExtensionToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.userId;
+    const tokenId = req.params.id;
+    await prisma.extensionToken.deleteMany({ where: { userId, id: tokenId } });
+    return sendSuccess(res, null, 'Extension disconnected');
   } catch (err) {
     next(err);
   }

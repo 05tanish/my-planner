@@ -11,12 +11,24 @@ export const api = axios.create({
 
 // No manual Authorization header — cookie is sent automatically by the browser
 
-// Track if a logout redirect is already in progress
-let isRedirectingToLogin = false;
+/**
+ * Track whether we have already handled a 401 in this browser session.
+ * Once set to true, subsequent 401s are silently rejected without
+ * calling logout() again (which would re-trigger state updates / re-renders).
+ * The flag resets when the user successfully logs back in (see below).
+ */
+let hasLoggedOut = false;
 
-// Handle 401 — auto logout
+// Handle 401 — auto logout (fires exactly once per session)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // A successful response to /auth/login means the user just logged in —
+    // reset the flag so future 401s are handled again.
+    if (response.config.url?.includes('/auth/login') && response.status === 200) {
+      hasLoggedOut = false;
+    }
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
     const isAuthPage = window.location.pathname.startsWith('/login') ||
@@ -24,13 +36,9 @@ api.interceptors.response.use(
                        window.location.pathname.startsWith('/reset-password') ||
                        window.location.pathname.startsWith('/register');
 
-    if (status === 401 && !isAuthPage && !isRedirectingToLogin) {
-      isRedirectingToLogin = true;
+    if (status === 401 && !isAuthPage && !hasLoggedOut) {
+      hasLoggedOut = true;
       useAuthStore.getState().logout();
-      setTimeout(() => {
-        window.location.href = '/login';
-        isRedirectingToLogin = false;
-      }, 100);
     }
     return Promise.reject(error);
   }

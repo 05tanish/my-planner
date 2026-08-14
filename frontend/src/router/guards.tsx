@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { AppLayout } from '../components/layout/AppLayout';
@@ -8,12 +8,20 @@ import { api } from '../lib/api';
  * On mount, calls /auth/me to validate the httpOnly cookie session with the server.
  * If valid, sets user data in memory. If invalid/expired, redirects to /login.
  * This makes authentication fully server-side — no localStorage token storage.
+ *
+ * Uses a ref to ensure the auth check only runs once, even if React StrictMode
+ * double-mounts the component or if HMR triggers re-renders.
  */
 export function ProtectedRoute() {
   const { isAuthenticated, setAuth, logout } = useAuthStore();
   const [checking, setChecking] = useState(true);
+  const hasChecked = useRef(false);
 
   useEffect(() => {
+    // If we already ran the check (e.g. StrictMode double-mount), skip
+    if (hasChecked.current) return;
+    hasChecked.current = true;
+
     api.get('/auth/me')
       .then((res) => {
         const user = res.data?.data;
