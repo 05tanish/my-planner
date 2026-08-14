@@ -139,7 +139,7 @@ export const revokeSpecificExtensionToken = async (
   try {
     const userId = req.user!.userId;
     const tokenId = req.params.id;
-    await prisma.extensionToken.deleteMany({ where: { userId, id: tokenId } });
+    await prisma.extensionToken.deleteMany({ where: { userId, id: String(tokenId) } });
     return sendSuccess(res, null, 'Extension disconnected');
   } catch (err) {
     next(err);
