@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
 import { sendSuccess, sendCreated, sendError } from '../../utils/response';
 import { AuthRequest } from '../../middleware/auth.middleware';
+import { logActivity } from '../../services/activity-log.service';
 import {
   registerSchema,
   loginSchema,
@@ -20,6 +21,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     );
 
     // In dev, return token directly; in prod, send via email
+    logActivity({
+      userId: user.id,
+      action: 'auth.register',
+      entity: 'auth',
+      metadata: { email: dto.email, ip: req.ip, userAgent: req.headers['user-agent'] },
+    });
     return sendCreated(res, {
       message: 'Account created. Please verify your email.',
       ...(process.env.NODE_ENV === 'development' ? { devToken: emailVerifyToken } : {}),
@@ -62,6 +69,12 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     // Set httpOnly cookie — browser sends it automatically, JS cannot read it
     res.cookie('access_token', result.token, COOKIE_OPTIONS);
     
+    logActivity({
+      userId: result.user.id,
+      action: 'auth.login',
+      entity: 'auth',
+      metadata: { email: dto.email, ip: req.ip, userAgent: req.headers['user-agent'] },
+    });
     return sendSuccess(res, result, 'Login successful');
   } catch (err) {
     next(err);
@@ -77,6 +90,13 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
     // Clear the httpOnly cookie
     res.clearCookie('access_token', { path: '/' });
     
+    if (req.user) {
+      logActivity({
+        userId: req.user.userId,
+        action: 'auth.logout',
+        entity: 'auth',
+      });
+    }
     return sendSuccess(res, null, 'Logged out successfully');
   } catch (err) {
     next(err);

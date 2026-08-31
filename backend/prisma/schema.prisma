@@ -64,6 +64,7 @@ model User {
   hackathons           Hackathon[]
   alerts               Alert[]
   priorities           Priority[]
+  activityLogs         ActivityLog[]
 }
 
 model Session {
@@ -1226,4 +1227,22 @@ model Priority {
   @@index([queuePosition])
 }
 
+// ─────────────────────────────────────────────
+// ACTIVITY LOGS
+// ─────────────────────────────────────────────
 
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // e.g. "login", "job.create", "extension.connect"
+  entity    String?  // e.g. "auth", "job", "extension", "note"
+  entityId  String?  // ID of the affected record
+  metadata  Json?    // Extra context (e.g. { ip, userAgent, tokenName })
+  level     String   @default("info") // "info", "warn", "error"
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+}

@@ -28,6 +28,7 @@ const OpportunitiesPage = lazy(() => import('../pages/OpportunitiesPage'));
 const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
 const AlertsPage        = lazy(() => import('../pages/AlertsPage'));
 const DsaConceptsPage  = lazy(() => import('../pages/DsaConceptsPage'));
+const LogsPage         = lazy(() => import('../pages/LogsPage'));
 
 function PageLoader() {
   return (
@@ -168,6 +169,9 @@ export function AppRouter() {
         } />
         <Route path="/alerts" element={
           <Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>
+        } />
+        <Route path="/logs" element={
+          <Suspense fallback={<PageLoader />}><LogsPage /></Suspense>
         } />
       </Route>
     </Routes>

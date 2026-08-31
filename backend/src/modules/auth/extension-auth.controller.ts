@@ -3,6 +3,7 @@ import { AuthRequest } from '../../middleware/auth.middleware';
 import { sendSuccess, sendError } from '../../utils/response';
 import prisma from '../../config/database';
 import crypto from 'crypto';
+import { logActivity } from '../../services/activity-log.service';
 
 /**
  * POST /api/auth/extension-token
@@ -34,6 +35,12 @@ export const generateExtensionToken = async (
       },
     });
 
+    logActivity({
+      userId,
+      action: 'extension.token_generated',
+      entity: 'extension',
+      metadata: { tokenName: name },
+    });
     return sendSuccess(res, { token, expiresAt: expiresAt.toISOString() }, 'Extension token generated');
   } catch (err) {
     next(err);
@@ -79,6 +86,13 @@ export const verifyExtensionToken = async (
       email: record.user.email,
     }, 'Token verified');
   } catch (err) {
+    logActivity({
+      userId: 'unknown',
+      action: 'extension.token_verify_failed',
+      entity: 'extension',
+      level: 'warn',
+      metadata: { error: 'verification_error' },
+    });
     next(err);
   }
 };
@@ -95,6 +109,11 @@ export const revokeExtensionToken = async (
   try {
     const userId = req.user!.userId;
     await prisma.extensionToken.deleteMany({ where: { userId } });
+    logActivity({
+      userId,
+      action: 'extension.all_tokens_revoked',
+      entity: 'extension',
+    });
     return sendSuccess(res, null, 'Extension disconnected');
   } catch (err) {
     next(err);

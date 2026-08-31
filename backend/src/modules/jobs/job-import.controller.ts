@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { importJob } from './job-import.service';
 import { sendCreated, sendError } from '../../utils/response';
+import { logActivity } from '../../services/activity-log.service';
 
 /**
  * POST /api/jobs/import
@@ -70,6 +71,18 @@ export const importJobHandler = async (
     }
 
     const result = await importJob(userId, parsed, screenshotFile, screenshotBase64);
+
+    logActivity({
+      userId,
+      action: result.isDuplicate ? 'job.import_duplicate' : 'job.import',
+      entity: 'job',
+      entityId: (result as any).id,
+      metadata: {
+        source: parsed.metadata.source,
+        sourceUrl: parsed.metadata.sourceUrl,
+        extractionMethod: parsed.metadata.extractionMethod,
+      },
+    });
 
     return sendCreated(res, result, result.isDuplicate ? 'Job already exists' : 'Job captured');
   } catch (err) {

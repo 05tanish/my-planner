@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Code2, FileText,
   BookMarked, Target, Briefcase, Library,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered, Lightbulb
+  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered, Lightbulb, ScrollText
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -31,6 +31,7 @@ const NAV = [
   { label: 'Opportunities',   path: '/opportunities', Icon: Radar, isV2: true },
   { label: 'Hackathons',      path: '/hackathons',    Icon: Trophy, isV2: true },
   { label: 'Alerts',          path: '/alerts',        Icon: Bell, isV2: true },
+  { label: 'Logs',            path: '/logs',          Icon: ScrollText, isV2: true, adminOnly: true },
   { label: '—', path: 'divider-2', Icon: null, isDivider: true },
   { label: 'Settings',        path: '/settings',   Icon: Settings },
 ];
@@ -77,12 +78,15 @@ export function Sidebar() {
 
       {/* ── Nav Links ────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {NAV.map(({ label, path, Icon, isDivider, isV2 }) => {
+        {NAV.map(({ label, path, Icon, isDivider, isV2, adminOnly }) => {
           if (isDivider) {
             return (
               <div key={path} className="h-px bg-border my-2 mx-2" />
             );
           }
+
+          // Hide admin-only items from non-admin users
+          if (adminOnly && user?.role !== 'ADMIN') return null;
 
           return (
             <NavLink
