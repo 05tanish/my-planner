@@ -31,6 +31,7 @@ import alertsRouter from './modules/alerts/alerts.routes';
 import prioritiesRouter from './modules/priorities/priorities.routes';
 import dsaConceptsRouter from './modules/dsa-concepts/dsa-concepts.routes';
 import aiRouter from './modules/ai/ai.routes';
+import logsRouter from './modules/analytics/logs.routes';
 
 const app = express();
 
@@ -61,7 +62,7 @@ app.use(
     origin: true, // standard frontend URLs
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Extension-Token'],
   })
 );
 app.use(express.json({ limit: '50mb' }));
@@ -116,6 +117,7 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/priorities', prioritiesRouter);
 app.use('/api/dsa-concepts', dsaConceptsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/logs', logsRouter);
 
 // Global Error Handler
 app.use(errorHandler);
