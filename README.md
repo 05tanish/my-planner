@@ -74,6 +74,11 @@ Wishlist  →  Applied  →  OA  →  Interview  →  Rejected  →  Offer
 
 <br />
 
+### 🧩 &nbsp;Job Capture Extension
+A dedicated Chromium-based browser extension that seamlessly scrapes job postings from LinkedIn, Indeed, Naukri, and other portals. It extracts job details (title, company, description) and captures a viewport screenshot, instantly queuing them into your DevOS job pipeline.
+
+<br />
+
 ### 🤖 &nbsp;Telegram Bot
 Control your entire workspace from your phone. A secure 6-digit PIN links your Telegram account. Once linked, use interactive menus and conversational flows to manage tasks, notes, and job updates on the go.
 
@@ -99,20 +104,27 @@ Built with a high-contrast **charcoal/zinc** color palette. Solid input fields, 
 ```
 devos/
 │
-├── backend/                        # Express.js + TypeScript REST API
+├── backend/                        # Node.js + Express.js + TypeScript REST API
 │   ├── prisma/
-│   │   ├── schema.prisma           # All database models
+│   │   ├── schema.prisma           # All database models (PostgreSQL)
 │   │   └── migrations/             # Prisma migration history
 │   └── src/
-│       ├── controllers/            # Route handler logic
+│       ├── modules/                # Feature-based domains (auth, planner, jobs, dsa, etc.)
 │       ├── middleware/             # Auth, file uploads, error handling
-│       └── services/               # Telegram bot, scraper, notes parser
+│       └── services/               # Redis, Email, AI, Telegram bot, Storage
 │
-├── frontend/                       # React + Vite + Tailwind CSS + Zustand
+├── frontend/                       # React 18 + Vite + Tailwind CSS + Zustand
 │   └── src/
-│       ├── components/             # Topbar, Sidebar, Reader, shared UI
-│       ├── pages/                  # Dashboard, DSA, Books, Notes, Jobs, Settings
-│       └── stores/                 # Global state (Zustand)
+│       ├── components/             # Layout (Sidebar, Topbar) & shared UI components
+│       ├── pages/                  # Route components (Dashboard, DSA, Jobs, Planner)
+│       ├── stores/                 # Global state (Zustand for UI & Auth)
+│       └── lib/                    # API client wrappers, constants, utils
+│
+├── job-capture-extension/          # Chromium Extension for scraping job portals
+│   ├── background/                 # Extension service worker
+│   ├── content/                    # Platform-specific scrapers (LinkedIn, Indeed, Naukri)
+│   ├── popup/                      # Extension UI
+│   └── services/                   # API syncing, offline queue, screenshot engine
 │
 ├── docker-compose.yml              # Production Docker stack
 ├── docker-compose.dev.yml          # Development Docker stack
@@ -288,7 +300,8 @@ Provision a free serverless PostgreSQL instance and copy your `DATABASE_URL` and
 | Layer | Technology |
 |:---|:---|
 | **Frontend** | React 18, Vite, Tailwind CSS, Zustand |
-| **Backend** | Node.js, Express.js, TypeScript |
+| **Backend** | Node.js, Express.js, TypeScript, Redis |
+| **Extension** | Chromium API, DOM Parsing, Offline Queues |
 | **Database** | PostgreSQL 15, Prisma ORM |
 | **Auth** | JSON Web Tokens (JWT) |
 | **Bot** | Telegram Bot API |
