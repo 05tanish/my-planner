@@ -25,6 +25,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+/**
+ * Returns the current date shifted by the 4:00 AM reset boundary.
+ * If the current time is between 00:00 and 03:59, the active planner day
+ * belongs to yesterday. Reset happens at 4:00 AM morning.
+ */
+export function getPlannerDate(date: Date = new Date()): Date {
+  const d = new Date(date);
+  if (d.getHours() < 4) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+
 function toLocalDateString(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -36,8 +49,8 @@ export function PlannerPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Date navigation (used when scope === DAILY)
-  const [selectedDate, setSelectedDate] = useState<string>(toLocalDateString(new Date()));
+  // Date navigation (used when scope === DAILY) — defaults to active planner day (4 AM reset)
+  const [selectedDate, setSelectedDate] = useState<string>(toLocalDateString(getPlannerDate()));
 
   // Search & Filters
   const [search, setSearch] = useState('');
@@ -264,18 +277,26 @@ export function PlannerPage() {
 
   // Date navigation helpers
   const navigateDate = (days: number) => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + days);
     setSelectedDate(toLocalDateString(d));
   };
 
-  const isToday = selectedDate === toLocalDateString(new Date());
+  const isToday = selectedDate === toLocalDateString(getPlannerDate());
 
   const formatDateLabel = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    const today = toLocalDateString(new Date());
-    const yesterday = toLocalDateString(new Date(Date.now() - 86400000));
-    const tomorrow = toLocalDateString(new Date(Date.now() + 86400000));
+    const d = new Date(dateStr + 'T12:00:00');
+    const plannerToday = getPlannerDate();
+    const today = toLocalDateString(plannerToday);
+    
+    const yestDate = new Date(plannerToday);
+    yestDate.setDate(yestDate.getDate() - 1);
+    const yesterday = toLocalDateString(yestDate);
+
+    const tomDate = new Date(plannerToday);
+    tomDate.setDate(tomDate.getDate() + 1);
+    const tomorrow = toLocalDateString(tomDate);
+
     if (dateStr === today) return 'Today';
     if (dateStr === yesterday) return 'Yesterday';
     if (dateStr === tomorrow) return 'Tomorrow';
@@ -522,7 +543,7 @@ export function PlannerPage() {
 
           {!isToday && (
             <button
-              onClick={() => setSelectedDate(toLocalDateString(new Date()))}
+              onClick={() => setSelectedDate(toLocalDateString(getPlannerDate()))}
               className="px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 rounded-md transition-colors"
             >
               Today

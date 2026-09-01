@@ -6,7 +6,12 @@ import { sendHighPriorityTaskAlert } from '../../services/telegram.service';
 export const createTask = async (userId: string, data: any) => {
   const payload = { ...data, userId };
   if (!payload.dueDate) {
-    payload.dueDate = new Date();
+    const now = new Date();
+    // If before 4:00 AM, task belongs to the ongoing planner day (yesterday's date)
+    if (now.getHours() < 4) {
+      now.setDate(now.getDate() - 1);
+    }
+    payload.dueDate = now;
   }
   if (payload.status === 'DONE' && !payload.completedAt) {
     payload.completedAt = new Date();
@@ -106,7 +111,12 @@ export const deleteTask = async (userId: string, id: string) => {
 };
 
 export const getTodayTasks = async (userId: string) => {
-  const today = new Date();
+  const now = new Date();
+  // If before 4:00 AM, today's planner scope is the ongoing day starting yesterday
+  if (now.getHours() < 4) {
+    now.setDate(now.getDate() - 1);
+  }
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);

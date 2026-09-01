@@ -32,8 +32,8 @@ export const initScheduler = () => {
     await runGithubReminderJob();
   });
 
-  // 3. Analytics Snapshot - Daily at 12:05 AM (computes snapshot for yesterday)
-  cron.schedule('5 0 * * *', async () => {
+  // 3. Analytics Snapshot - Daily at 4:05 AM (computes snapshot for completed day)
+  cron.schedule('5 4 * * *', async () => {
     console.log('⏰ Triggered Scheduled Task: Analytics Daily Snapshot');
     await runAnalyticsSnapshotJob();
   });

@@ -61,7 +61,7 @@ import { runDailyReportJob } from '../../jobs/dailyReport.job';
 
 export const triggerDailyReport = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    await runDailyReportJob();
+    await runDailyReportJob(req.user!.userId);
     return sendSuccess(res, null, 'Daily report triggered successfully');
   } catch (e) {
     next(e);

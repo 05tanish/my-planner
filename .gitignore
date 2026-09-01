@@ -43,6 +43,7 @@ pids
 .Trashes
 ehthumbs.db
 Thumbs.db
+project_documentation.md
 
 # Editor/IDE
 .vscode/settings.json

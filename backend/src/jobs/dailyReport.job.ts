@@ -3,24 +3,28 @@ import prisma from '../config/database';
 import { generateDailySnapshot } from '../modules/analytics/analytics.service';
 import { sendEmail } from '../services/email.service';
 import { sendTelegramMessage } from '../services/telegram.service';
-import { startOfDay } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 
-export const runDailyReportJob = async () => {
+export const runDailyReportJob = async (targetUserId?: string) => {
   console.log('📧 Running daily productivity report job...');
   
   try {
     const users = await prisma.user.findMany({
-      where: { emailVerified: true },
+      where: targetUserId ? { id: targetUserId } : undefined,
       include: { profile: true }
     });
 
-    const today = startOfDay(new Date()); // midnight of today
+    const now = new Date();
+    // If running at 4:00 AM reset (or early morning < 4 AM) or automated run, report on the completed day (yesterday).
+    // If triggered manually during daytime (>= 4 AM), report on current active day.
+    const isEarlyMorning = now.getHours() < 4;
+    const reportDate = isEarlyMorning || !targetUserId ? subDays(startOfDay(now), 1) : startOfDay(now);
 
     for (const user of users) {
       if (!user.profile?.notifEmail && !user.profile?.notifTelegram) continue;
 
-      // Generate and fetch today's snapshot
-      const snapshot = await generateDailySnapshot(user.id, today);
+      // Generate and fetch snapshot for the target reporting day
+      const snapshot = await generateDailySnapshot(user.id, reportDate);
       
       // Fetch remaining active priorities
       const activePriorities = await prisma.priority.findMany({
@@ -136,6 +140,6 @@ export const runDailyReportJob = async () => {
 };
 
 export const startDailyReportJob = () => {
-  // Runs every day at 12:00 AM (midnight)
-  cron.schedule('0 0 * * *', runDailyReportJob);
+  // Runs every day at 4:00 AM (morning reset time)
+  cron.schedule('0 4 * * *', () => runDailyReportJob());
 };
