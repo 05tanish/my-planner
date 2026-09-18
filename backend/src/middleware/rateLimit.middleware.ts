@@ -48,6 +48,13 @@ const createRedisLimiter = (options: LimiterOptions) => {
         res.setHeader('X-RateLimit-Remaining', Math.max(0, options.max - hits));
 
         if (hits > options.max) {
+          // Must include CORS headers on error responses; otherwise Chrome
+          // extension (chrome-extension:// origin) reports a CORS error
+          // instead of the real 429, and the extension swallows it as
+          // "Backend unavailable".
+          const origin = req.headers['origin'];
+          if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Vary', 'Origin');
           return res.status(429).json({ success: false, message: options.message });
         }
         return next();

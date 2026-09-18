@@ -6,6 +6,13 @@ import type { ExtensionMessage, ExtractionResult } from '../types/job.js';
 
 // Listen for messages from the service worker / popup
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+  // PING: Used by the service worker to check if this content script is already alive.
+  // Prevents double-injection race conditions.
+  if (message.type === 'PING') {
+    sendResponse({ alive: true });
+    return false;
+  }
+
   if (message.type === 'EXTRACT_JOB') {
     (async () => {
       try {

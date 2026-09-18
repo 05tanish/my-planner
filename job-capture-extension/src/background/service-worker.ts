@@ -66,14 +66,31 @@ async function handleCaptureAndSave(payload: {
 }): Promise<any> {
   const { tabId, url, title } = payload;
 
-  // Step 1: Run DOM extraction via content script
+  // Step 1: Run DOM extraction via content script.
+  // The content script is already injected by the manifest at document_idle.
+  // We ping it first; if it doesn't respond (e.g. fresh page load), we inject manually.
   let extraction: ExtractionResult | null = null;
   try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['src/content/content.js'],
-    });
-    // Content script is injected — now request extraction
+    // Try pinging the already-running content script first
+    let contentScriptReady = false;
+    try {
+      await chrome.tabs.sendMessage(tabId, { type: 'PING' } as ExtensionMessage);
+      contentScriptReady = true;
+    } catch {
+      // Content script not ready — inject it manually
+      contentScriptReady = false;
+    }
+
+    if (!contentScriptReady) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['src/content/content.js'],
+      });
+      // Brief pause to let the newly injected script register its listener
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Now request extraction
     const extractResults = await chrome.tabs.sendMessage(tabId, {
       type: 'EXTRACT_JOB',
     } as ExtensionMessage);
@@ -124,9 +141,6 @@ async function handleCaptureAndSave(payload: {
     postedDate: null, applicationDeadline: null,
   };
 
-  const hostname = (() => {
-    try { return new URL(url).hostname.replace('www.', ''); } catch { return 'unknown'; }
-  })();
 
   const metadata: CaptureMetadata = {
     source: extraction?.detectedSite || detectSiteFromUrl(url),
@@ -290,7 +304,12 @@ async function sendToBackendDirect(payload: JobImportPayload): Promise<any> {
 }
 
 // ─── Retry Alarm ───
-chrome.alarms.create('retryQueue', { periodInMinutes: 5 });
+// Guard against duplicate alarm creation on service worker restarts
+chrome.alarms.get('retryQueue').then(existing => {
+  if (!existing) {
+    chrome.alarms.create('retryQueue', { periodInMinutes: 5 });
+  }
+});
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'retryQueue') {

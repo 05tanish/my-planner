@@ -78,6 +78,7 @@ export interface ValidationResult {
 // ─── Message Types (popup ↔ service-worker ↔ content-script) ───
 
 export type MessageType =
+  | 'PING'           // Liveness check from service worker to content script
   | 'DETECT_PAGE'
   | 'DETECT_PAGE_RESULT'
   | 'EXTRACT_JOB'

@@ -59,7 +59,17 @@ app.use(
 );
 app.use(
   cors({
-    origin: true, // standard frontend URLs
+    // Explicitly allow any origin including chrome-extension:// URLs.
+    // `origin: true` reflects the request Origin, but can fail for
+    // non-standard schemes (chrome-extension://) through certain proxies.
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, etc.)
+      if (!origin) return callback(null, true);
+      // Always allow chrome extensions
+      if (origin.startsWith('chrome-extension://')) return callback(null, true);
+      // Allow all other origins (same behaviour as origin: true)
+      return callback(null, origin);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Extension-Token'],
