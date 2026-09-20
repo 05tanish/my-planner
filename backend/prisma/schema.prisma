@@ -65,6 +65,7 @@ model User {
   alerts               Alert[]
   priorities           Priority[]
   activityLogs         ActivityLog[]
+  contacts             Contact[]
 }
 
 model Session {
@@ -412,6 +413,10 @@ model Job {
   extractionConfidence Float?
   capturedAt           DateTime?
 
+  // ─── Contact Reference ───
+  contactId   String?   // optional linked contact (recruiter, referral, etc.)
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -419,6 +424,7 @@ model Job {
 
   @@index([userId])
   @@index([sourceUrl])
+  @@index([contactId])
 }
 
 // ─────────────────────────────────────────────
@@ -1245,4 +1251,47 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
   @@index([action])
+}
+
+// ─────────────────────────────────────────────
+// CONTACTS / NETWORK
+// ─────────────────────────────────────────────
+
+enum ContactRelation {
+  RECRUITER
+  HR
+  HIRING_MANAGER
+  ALUMNI
+  SENIOR
+  FRIEND
+  COLLEAGUE
+  REFERRAL
+  COMPANY_EMPLOYEE
+  DEVELOPER
+  OTHER
+}
+
+model Contact {
+  id              String           @id @default(cuid())
+  userId          String
+  name            String
+  phone           String?
+  email           String?
+  linkedinUrl     String?
+  whatsappNumber  String?
+  role            String?
+  company         String?
+  relation        ContactRelation?
+  notes           String?
+  source          String?          // Where did you meet them? e.g., "LinkedIn", "College Event"
+  lastContactedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs            Job[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([phone])
+  @@index([linkedinUrl])
 }

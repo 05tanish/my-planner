@@ -17,18 +17,15 @@ const JobsPage        = lazy(() => import('../pages/JobsPage').then(m => ({ defa
 
 const ResourcesPage   = lazy(() => import('../pages/ResourcesPage').then(m => ({ default: m.ResourcesPage })));
 const BooksPage       = lazy(() => import('../pages/BooksPage').then(m => ({ default: m.BooksPage })));
-const PlacementPage   = lazy(() => import('../pages/PlacementPage').then(m => ({ default: m.PlacementPage })));
 const GitHubPage      = lazy(() => import('../pages/GitHubPage').then(m => ({ default: m.GitHubPage })));
 const PriorityPage    = lazy(() => import('../pages/PriorityPage'));
 const SettingsPage    = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 // V2 Pages
 const ProjectsPage      = lazy(() => import('../pages/ProjectsPage'));
-const InterviewsPage    = lazy(() => import('../pages/InterviewsPage'));
-const OpportunitiesPage = lazy(() => import('../pages/OpportunitiesPage'));
 const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
-const AlertsPage        = lazy(() => import('../pages/AlertsPage'));
 const DsaConceptsPage  = lazy(() => import('../pages/DsaConceptsPage'));
 const LogsPage         = lazy(() => import('../pages/LogsPage'));
+const ContactsPage     = lazy(() => import('../pages/ContactsPage'));
 
 function PageLoader() {
   return (
@@ -142,9 +139,6 @@ export function AppRouter() {
         <Route path="/books" element={
           <Suspense fallback={<PageLoader />}><BooksPage /></Suspense>
         } />
-        <Route path="/placement" element={
-          <Suspense fallback={<PageLoader />}><PlacementPage /></Suspense>
-        } />
         <Route path="/github" element={
           <Suspense fallback={<PageLoader />}><GitHubPage /></Suspense>
         } />
@@ -158,20 +152,14 @@ export function AppRouter() {
         <Route path="/projects" element={
           <Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense>
         } />
-        <Route path="/interviews" element={
-          <Suspense fallback={<PageLoader />}><InterviewsPage /></Suspense>
-        } />
-        <Route path="/opportunities" element={
-          <Suspense fallback={<PageLoader />}><OpportunitiesPage /></Suspense>
-        } />
         <Route path="/hackathons" element={
           <Suspense fallback={<PageLoader />}><HackathonsPage /></Suspense>
         } />
-        <Route path="/alerts" element={
-          <Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>
-        } />
         <Route path="/logs" element={
           <Suspense fallback={<PageLoader />}><LogsPage /></Suspense>
+        } />
+        <Route path="/contacts" element={
+          <Suspense fallback={<PageLoader />}><ContactsPage /></Suspense>
         } />
       </Route>
     </Routes>

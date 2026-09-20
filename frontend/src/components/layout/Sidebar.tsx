@@ -1,9 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarCheck, Code2, FileText,
-  BookMarked, Target, Briefcase, Library,
+  BookMarked, Briefcase, Library,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  FolderKanban, MessageSquare, Radar, Trophy, Bell, ListOrdered, Lightbulb, ScrollText
+  FolderKanban, Trophy, ListOrdered, Lightbulb, ScrollText, UserPlus
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -21,17 +21,14 @@ const NAV = [
   { label: 'Notes',           path: '/notes',          Icon: FileText },
 
   { label: 'Resources',       path: '/resources',  Icon: BookMarked },
-  { label: 'Placement Prep',  path: '/placement',  Icon: Target },
   { label: 'Job Tracker',     path: '/jobs',       Icon: Briefcase },
+  { label: 'Contacts',        path: '/contacts',   Icon: UserPlus },
   { label: 'Books',           path: '/books',      Icon: Library },
   { label: 'GitHub',          path: '/github',     Icon: Github },
   { label: '—', path: 'divider-1', Icon: null, isDivider: true },
-  { label: 'Projects',        path: '/projects',      Icon: FolderKanban, isV2: true },
-  { label: 'Interviews',      path: '/interviews',    Icon: MessageSquare, isV2: true },
-  { label: 'Opportunities',   path: '/opportunities', Icon: Radar, isV2: true },
-  { label: 'Hackathons',      path: '/hackathons',    Icon: Trophy, isV2: true },
-  { label: 'Alerts',          path: '/alerts',        Icon: Bell, isV2: true },
-  { label: 'Logs',            path: '/logs',          Icon: ScrollText, isV2: true, adminOnly: true },
+  { label: 'Projects',        path: '/projects',      Icon: FolderKanban },
+  { label: 'Hackathons',      path: '/hackathons',    Icon: Trophy },
+  { label: 'Logs',            path: '/logs',          Icon: ScrollText, adminOnly: true },
   { label: '—', path: 'divider-2', Icon: null, isDivider: true },
   { label: 'Settings',        path: '/settings',   Icon: Settings },
 ];
@@ -78,7 +75,7 @@ export function Sidebar() {
 
       {/* ── Nav Links ────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {NAV.map(({ label, path, Icon, isDivider, isV2, adminOnly }) => {
+        {NAV.map(({ label, path, Icon, isDivider, adminOnly }) => {
           if (isDivider) {
             return (
               <div key={path} className="h-px bg-border my-2 mx-2" />
@@ -106,17 +103,7 @@ export function Sidebar() {
             >
               {Icon && <Icon className="w-4 h-4 shrink-0" />}
               {!sidebarCollapsed && (
-                <>
-                  <span className="truncate text-[13px]">{label}</span>
-                  {isV2 && (
-                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400 font-semibold">
-                      NEW
-                    </span>
-                  )}
-                </>
-              )}
-              {isV2 && sidebarCollapsed && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                <span className="truncate text-[13px]">{label}</span>
               )}
             </NavLink>
           );

@@ -17,21 +17,18 @@ import plannerRouter from './modules/planner/planner.routes';
 import jobsRouter from './modules/jobs/jobs.routes';
 import resourcesRouter from './modules/resources/resources.routes';
 import booksRouter from './modules/books/books.routes';
-import placementRouter from './modules/placement/placement.routes';
 import githubRouter from './modules/github/github.routes';
 import analyticsRouter from './modules/analytics/analytics.routes';
 import remindersRouter from './modules/reminders/reminders.routes';
 import dashboardRouter from './modules/dashboard/dashboard.routes';
 import usersRouter from './modules/users/users.routes';
 import projectsRouter from './modules/projects/projects.routes';
-import interviewsRouter from './modules/interviews/interviews.routes';
-import opportunitiesRouter from './modules/opportunities/opportunities.routes';
 import hackathonsRouter from './modules/hackathons/hackathons.routes';
-import alertsRouter from './modules/alerts/alerts.routes';
 import prioritiesRouter from './modules/priorities/priorities.routes';
 import dsaConceptsRouter from './modules/dsa-concepts/dsa-concepts.routes';
 import aiRouter from './modules/ai/ai.routes';
 import logsRouter from './modules/analytics/logs.routes';
+import contactsRouter from './modules/contacts/contacts.routes';
 
 const app = express();
 
@@ -113,21 +110,18 @@ app.use('/api/planner', plannerRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/books', booksRouter);
-app.use('/api/placement', placementRouter);
 app.use('/api/github', githubRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/users', usersRouter);
 // V2 Routes
 app.use('/api/projects', projectsRouter);
-app.use('/api/interviews', interviewsRouter);
-app.use('/api/opportunities', opportunitiesRouter);
 app.use('/api/hackathons', hackathonsRouter);
-app.use('/api/alerts', alertsRouter);
 app.use('/api/priorities', prioritiesRouter);
 app.use('/api/dsa-concepts', dsaConceptsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/logs', logsRouter);
+app.use('/api/contacts', contactsRouter);
 
 // Global Error Handler
 app.use(errorHandler);

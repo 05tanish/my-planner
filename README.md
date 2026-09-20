@@ -247,6 +247,12 @@ Provision a free serverless PostgreSQL instance and copy your `DATABASE_URL` and
    | `JWT_SECRET` | Long random secret |
    | `TELEGRAM_BOT_TOKEN` | Your bot token |
    | `PORT` | Auto-assigned by Railway |
+   | `BACKEND_URL` | Your Railway backend URL (e.g., `https://your-app.up.railway.app`) |
+   | `SUPABASE_URL` | Your Supabase project URL (for file storage) |
+   | `SUPABASE_SERVICE_KEY` | Your Supabase service role key |
+   | `SUPABASE_STORAGE_BUCKET` | `devos-files` |
+
+   **Note:** Set `BACKEND_URL` to ensure file URLs work correctly in production. If using local file storage fallback instead of Supabase, this is critical.
 
 4. Set the **Start Command**:
    ```bash

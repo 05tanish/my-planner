@@ -59,9 +59,13 @@ export const uploadFile = async (file: Express.Multer.File, folder: string): Pro
     fs.writeFileSync(localFilePath, file.buffer);
 
     console.log(`⚡ Saved file locally to ${localFilePath}`);
-    // Use BACKEND_URL env var if set, otherwise fall back to localhost with port
-    const backendBase = process.env.BACKEND_URL || `http://localhost:${env.PORT || 4000}`;
-    return `${backendBase}/uploads/${folder}/${uniqueFilename}`;
+    
+    // Use BACKEND_URL if set, otherwise construct from PORT
+    const backendBase = env.BACKEND_URL || `http://localhost:${env.PORT || 4000}`;
+    const fileUrl = `${backendBase}/uploads/${folder}/${uniqueFilename}`;
+    
+    console.log(`⚡ Generated file URL: ${fileUrl}`);
+    return fileUrl;
   } catch (err: any) {
     console.error('❌ Local Storage Save Error:', err);
     // Return a placeholder if everything fails

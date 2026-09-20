@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Plus, Search, ExternalLink, Calendar, DollarSign, MapPin,
   Trash2, Edit2, Loader2, FileText, Upload, Star, X, Eye, Download, RefreshCw,
-  Camera, AlertTriangle
+  Camera, AlertTriangle, Briefcase
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Job, JobStatus } from '../types';
@@ -50,7 +50,14 @@ export function JobsPage() {
     catch (_) {}
   };
 
-  useEffect(() => { fetchResumes(); }, []);
+  const fetchContactsForLinking = async () => {
+    try {
+      const r = await api.get('/contacts');
+      setContacts(r.data.data || []);
+    } catch (_) {}
+  };
+
+  useEffect(() => { fetchResumes(); fetchContactsForLinking(); }, []);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -85,6 +92,7 @@ export function JobsPage() {
   // Modals
   const [isOpen, setIsOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [showStatusPrompt, setShowStatusPrompt] = useState(false);
 
   // Form Fields
   const [company, setCompany] = useState('');
@@ -95,6 +103,10 @@ export function JobsPage() {
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
   const [notes, setNotes] = useState('');
+  const [contactId, setContactId] = useState<string>('');
+
+  // Contacts list for linking
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string; company?: string; role?: string }>>([]);
 
   const fetchJobs = async () => {
     try {
@@ -129,7 +141,18 @@ export function JobsPage() {
     setLocation('');
     setSalary('');
     setNotes('');
+    setContactId('');
+    setShowStatusPrompt(false);
     setIsOpen(true);
+  };
+
+  const handleAddJobClick = () => {
+    setShowStatusPrompt(true);
+  };
+
+  const handleStatusSelected = (selectedStatus: JobStatus) => {
+    setShowStatusPrompt(false);
+    handleOpenAddModal(selectedStatus);
   };
 
   const handleOpenEditModal = (j: Job) => {
@@ -142,6 +165,7 @@ export function JobsPage() {
     setLocation(j.location || '');
     setSalary(j.salary || '');
     setNotes(j.notes || '');
+    setContactId((j as any).contactId || '');
     setIsOpen(true);
   };
 
@@ -159,6 +183,7 @@ export function JobsPage() {
       location: location || undefined,
       salary: salary || undefined,
       notes: notes || undefined,
+      contactId: contactId || undefined,
     };
 
     try {
@@ -317,7 +342,7 @@ export function JobsPage() {
           >
             <FileText className="w-4 h-4 mr-2" /> General Library {resumes.length > 0 && `(${resumes.length})`}
           </Button>
-          <Button onClick={() => handleOpenAddModal('APPLIED')} className="w-full sm:w-auto bg-primary text-primary-foreground">
+          <Button onClick={handleAddJobClick} className="w-full sm:w-auto bg-primary text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" /> Log Application
           </Button>
         </div>
@@ -649,6 +674,22 @@ export function JobsPage() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Link Contact (Optional)</label>
+              <select
+                value={contactId}
+                onChange={e => setContactId(e.target.value)}
+                className="w-full h-10 px-3 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none"
+              >
+                <option value="">No contact linked</option>
+                {contacts.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.company ? `(${c.company})` : ''} {c.role ? `- ${c.role}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Application URL (Optional)</label>
               <Input type="url" value={jobUrl} onChange={e => setJobUrl(e.target.value)} placeholder="https://careers.google.com/..." />
             </div>
@@ -777,6 +818,46 @@ export function JobsPage() {
               className="w-full h-[72vh] border-0"
               title="Resume PDF Preview"
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Selection Modal */}
+      <Dialog open={showStatusPrompt} onOpenChange={setShowStatusPrompt}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>How do you want to save this job?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <button
+              onClick={() => handleStatusSelected('WISHLIST')}
+              className="w-full p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left"
+            >
+              <div className="flex items-start gap-3">
+                <Star className="w-5 h-5 text-amber-500 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">Wishlist</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Save this job for later. You haven't applied yet but want to track it.
+                  </p>
+                </div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => handleStatusSelected('APPLIED')}
+              className="w-full p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left"
+            >
+              <div className="flex items-start gap-3">
+                <Briefcase className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">Applied</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You have already submitted your application for this job.
+                  </p>
+                </div>
+              </div>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

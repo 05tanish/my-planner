@@ -14,6 +14,7 @@ const envSchema = z.object({
   PORT:         z.string().default('8080').transform(Number),
   NODE_ENV:     z.enum(['development', 'production', 'test']).default('development'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
+  BACKEND_URL:  z.string().optional(), // Full backend URL for file URLs in production
 
   // Email — Resend
   RESEND_API_KEY: z.string().optional(),

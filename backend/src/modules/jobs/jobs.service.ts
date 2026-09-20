@@ -13,7 +13,20 @@ export const list = async (userId: string, q: any) => {
       where, 
       orderBy: { appliedDate: 'desc' }, 
       skip: (Number(q.page || 1) - 1) * Number(q.limit || 100), 
-      take: Number(q.limit || 100) 
+      take: Number(q.limit || 100),
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+            company: true,
+            relation: true,
+          },
+        },
+      },
     }),
     prisma.job.count({ where }),
   ]);
@@ -21,7 +34,24 @@ export const list = async (userId: string, q: any) => {
 };
 
 export const getOne = async (userId: string, id: string) => {
-  const job = await prisma.job.findFirst({ where: { id, userId } });
+  const job = await prisma.job.findFirst({ 
+    where: { id, userId },
+    include: {
+      contact: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          linkedinUrl: true,
+          whatsappNumber: true,
+          role: true,
+          company: true,
+          relation: true,
+        },
+      },
+    },
+  });
   if (!job) throw new AppError('Job application not found.', 404);
   return job;
 };

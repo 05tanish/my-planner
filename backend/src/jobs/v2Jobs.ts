@@ -1,57 +1,15 @@
 import cron from 'node-cron';
 import prisma from '../config/database';
-import { alertService } from '../modules/alerts/alerts.service';
 import { sendTelegramMessage } from '../services/telegram.service';
 import { startOfDay, startOfWeek, endOfWeek, format } from 'date-fns';
 
-// Phase 15: Alert Scanner - Every hour
-export const startAlertScanner = () => {
-  cron.schedule('0 * * * *', async () => {
-    console.log('🔔 Running alert scanner...');
-    
-    try {
-      const users = await prisma.user.findMany({
-        include: { profile: true }
-      });
-
-      for (const user of users) {
-        await alertService.scanAndCreateAlerts(user.id);
-        
-        // Send Telegram notification for critical alerts
-        if (user.profile?.telegramChatId && user.profile?.notifTelegram) {
-          const criticalAlerts = await prisma.alert.findMany({
-            where: {
-              userId: user.id,
-              dismissed: false,
-              level: 'CRITICAL',
-              notified: false
-            }
-          });
-
-          if (criticalAlerts.length > 0) {
-            const message = 
-              `🚨 <b>Critical Alerts</b>\n\n` +
-              criticalAlerts.map(a => `• ${a.title}: ${a.message}`).join('\n');
-            
-            await sendTelegramMessage(user.profile.telegramChatId, message);
-            
-            // Mark as notified
-            await prisma.alert.updateMany({
-              where: { id: { in: criticalAlerts.map(a => a.id) } },
-              data: { notified: true }
-            });
-          }
-        }
-      }
-
-      console.log('✅ Alert scanner completed');
-    } catch (error) {
-      console.error('❌ Alert scanner failed:', error);
-    }
-  });
+// Start all cron jobs
+export const startV2Jobs = () => {
+  console.log('🚀 Starting DevOS V2 cron jobs...');
+  startDailyAIMentor();
+  startWeeklyReview();
+  console.log('✅ All V2 cron jobs started');
 };
-
-// Phase 11: Daily AI Mentor - Every day at 11 PM
 export const startDailyAIMentor = () => {
   cron.schedule('0 23 * * *', async () => {
     console.log('🤖 Running daily AI mentor...');
@@ -295,12 +253,3 @@ function formatWeeklyReviewMessage(name: string, review: any): string {
     `<b>🎯 Next Week Action Plan:</b>\n${review.actionPlan.map((p: string) => `• ${p}`).join('\n')}`
   );
 }
-
-// Start all cron jobs
-export const startV2Jobs = () => {
-  console.log('🚀 Starting DevOS V2 cron jobs...');
-  startAlertScanner();
-  startDailyAIMentor();
-  startWeeklyReview();
-  console.log('✅ All V2 cron jobs started');
-};
