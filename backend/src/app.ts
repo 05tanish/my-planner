@@ -29,6 +29,7 @@ import dsaConceptsRouter from './modules/dsa-concepts/dsa-concepts.routes';
 import aiRouter from './modules/ai/ai.routes';
 import logsRouter from './modules/analytics/logs.routes';
 import contactsRouter from './modules/contacts/contacts.routes';
+import placementRouter from './modules/placement/placement.routes';
 
 const app = express();
 
@@ -122,6 +123,7 @@ app.use('/api/dsa-concepts', dsaConceptsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/contacts', contactsRouter);
+app.use('/api/placement', placementRouter);
 
 // Global Error Handler
 app.use(errorHandler);
