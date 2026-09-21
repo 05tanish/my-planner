@@ -137,9 +137,25 @@
           <label style="font-size:11px; color:var(--text-muted);">Company</label>
           <input type="text" id="contactCompany" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
         </div>
-        <div class="form-group" style="margin-bottom: 16px;">
+        <div class="form-group" style="margin-bottom: 12px;">
           <label style="font-size:11px; color:var(--text-muted);">LinkedIn URL</label>
           <input type="text" id="contactUrl" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size:11px; color:var(--text-muted);">Relation</label>
+          <select id="contactRelation" class="form-select" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); font-family:var(--font); outline:none;">
+            <option value="RECRUITER">Recruiter</option>
+            <option value="HR">HR</option>
+            <option value="HIRING_MANAGER">Hiring Manager</option>
+            <option value="ALUMNI">Alumni</option>
+            <option value="SENIOR">Senior</option>
+            <option value="FRIEND">Friend</option>
+            <option value="COLLEAGUE">Colleague</option>
+            <option value="REFERRAL">Referral</option>
+            <option value="COMPANY_EMPLOYEE">Company Employee</option>
+            <option value="DEVELOPER">Developer</option>
+            <option value="OTHER">Other</option>
+          </select>
         </div>
 
         <button id="saveContactBtn" class="btn btn-primary btn-full">

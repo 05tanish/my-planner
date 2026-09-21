@@ -33,6 +33,7 @@ const $contactName = document.getElementById('contactName') as HTMLInputElement;
 const $contactRole = document.getElementById('contactRole') as HTMLInputElement;
 const $contactCompany = document.getElementById('contactCompany') as HTMLInputElement;
 const $contactUrl = document.getElementById('contactUrl') as HTMLInputElement;
+const $contactRelation = document.getElementById('contactRelation') as HTMLSelectElement;
 const $saveContactBtn = document.getElementById('saveContactBtn') as HTMLButtonElement;
 const $saveContactBtnText = document.getElementById('saveContactBtnText')!;
 const $saveContactBtnIcon = document.getElementById('saveContactBtnIcon')!;
@@ -396,6 +397,7 @@ $saveContactBtn.addEventListener('click', async () => {
   const role = $contactRole.value.trim();
   const company = $contactCompany.value.trim();
   const linkedinUrl = $contactUrl.value.trim();
+  const relation = $contactRelation.value;
 
   if (!name) {
     $contactName.style.borderColor = 'var(--error)';
@@ -410,7 +412,7 @@ $saveContactBtn.addEventListener('click', async () => {
   $contactResultSection.classList.add('hidden');
 
   try {
-    const res = await createContact({ name, role, company, linkedinUrl, source: 'LinkedIn' });
+    const res = await createContact({ name, role, company, linkedinUrl, relation, source: 'LinkedIn' });
     
     $contactResultSection.classList.remove('hidden');
     if (res.success) {

@@ -24,7 +24,12 @@ export const importJobHandler = async (
     // Support both JSON body and multipart/form-data
     if (req.body.job && req.body.metadata) {
       // JSON body format (from extension service worker)
-      parsed = { job: req.body.job, metadata: req.body.metadata };
+      parsed = { 
+        job: req.body.job, 
+        metadata: req.body.metadata,
+        status: req.body.status,
+        contactId: req.body.contactId,
+      };
     } else if (req.body.jobData) {
       // Legacy multipart/form-data format
       const rawData = req.body.jobData;
