@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   User as UserIcon, Bell, Clock, Save,
-  Loader2, ShieldCheck, KeyRound, Upload, Trash2, Edit, Plus, X,
+  Loader2, ShieldCheck, KeyRound, Upload, Trash2, Edit, Edit2, Plus, X,
   Code2, GraduationCap, Link2, RefreshCw, Copy, CheckCircle2
 } from 'lucide-react';
 import { Github, Linkedin } from '../components/ui/BrandIcons';
