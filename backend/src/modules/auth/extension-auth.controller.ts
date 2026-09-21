@@ -164,3 +164,36 @@ export const revokeSpecificExtensionToken = async (
     next(err);
   }
 };
+
+/**
+ * PATCH /api/auth/extension-token/:id
+ * Rename a specific extension token.
+ */
+export const renameExtensionToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.userId;
+    const tokenId = req.params.id;
+    const { name } = req.body;
+    
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
+
+    const token = await prisma.extensionToken.updateMany({ 
+      where: { userId, id: String(tokenId) },
+      data: { name: name.trim() }
+    });
+    
+    if (token.count === 0) {
+       return res.status(404).json({ success: false, message: 'Token not found' });
+    }
+    
+    return sendSuccess(res, null, 'Extension renamed');
+  } catch (err) {
+    next(err);
+  }
+};

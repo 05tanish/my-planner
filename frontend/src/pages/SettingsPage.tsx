@@ -46,6 +46,8 @@ export function SettingsPage() {
   const [extensionTokenName, setExtensionTokenName] = useState('Chrome Extension');
   const [extensionToken, setExtensionToken] = useState('');
   const [extensionTokenGenerating, setExtensionTokenGenerating] = useState(false);
+  const [editingExtensionTokenId, setEditingExtensionTokenId] = useState<string | null>(null);
+  const [editingExtensionTokenName, setEditingExtensionTokenName] = useState('');
 
   // File Upload State
   const [logoUploading, setLogoUploading] = useState(false);
@@ -1003,11 +1005,58 @@ export function SettingsPage() {
                       <div className="grid gap-3">
                         {extensionTokens.map(token => (
                           <div key={token.id} className="flex items-center justify-between p-3 bg-secondary/20 border border-border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                              <div>
-                                <p className="text-sm font-semibold text-foreground">{token.name}</p>
-                                <p className="text-[11px] text-muted-foreground">
+                            <div className="flex items-center gap-3 w-full max-w-[60%]">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                              <div className="w-full">
+                                {editingExtensionTokenId === token.id ? (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Input
+                                      value={editingExtensionTokenName}
+                                      onChange={(e) => setEditingExtensionTokenName(e.target.value)}
+                                      className="h-7 text-xs bg-background"
+                                      autoFocus
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="h-7 text-[10px] px-2"
+                                      onClick={async () => {
+                                        if (!editingExtensionTokenName.trim()) return;
+                                        try {
+                                          await api.patch(`/auth/extension-token/${token.id}`, { name: editingExtensionTokenName });
+                                          toast.success('Connector renamed');
+                                          setEditingExtensionTokenId(null);
+                                          loadExtensionStatus();
+                                        } catch {
+                                          toast.error('Failed to rename connector');
+                                        }
+                                      }}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-[10px] px-2 text-muted-foreground"
+                                      onClick={() => setEditingExtensionTokenId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                    {token.name}
+                                    <button 
+                                      className="text-muted-foreground hover:text-foreground"
+                                      onClick={() => {
+                                        setEditingExtensionTokenId(token.id);
+                                        setEditingExtensionTokenName(token.name);
+                                      }}
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                  </p>
+                                )}
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
                                   {token.lastUsed ? `Last active: ${new Date(token.lastUsed).toLocaleString()}` : 'Never used'}
                                 </p>
                               </div>

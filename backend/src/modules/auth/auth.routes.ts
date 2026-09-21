@@ -22,6 +22,7 @@ router.post('/extension-token', authenticate, extAuthController.generateExtensio
 router.post('/extension-verify', extAuthController.verifyExtensionToken);
 router.delete('/extension-token', authenticate, extAuthController.revokeExtensionToken);
 router.delete('/extension-token/:id', authenticate, extAuthController.revokeSpecificExtensionToken);
+router.patch('/extension-token/:id', authenticate, extAuthController.renameExtensionToken);
 router.get('/extension-status', authenticate, extAuthController.getExtensionStatus);
 
 export default router;
