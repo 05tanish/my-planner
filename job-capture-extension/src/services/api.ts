@@ -74,3 +74,16 @@ export async function apiRequest<T = any>(
     return { success: false, error: err.message || 'Network error' };
   }
 }
+
+/** Fetch contacts for linking */
+export async function getContacts(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  return apiRequest<any[]>('/api/contacts');
+}
+
+/** Save a new contact */
+export async function createContact(contactData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+  return apiRequest('/api/contacts', {
+    method: 'POST',
+    body: JSON.stringify(contactData),
+  });
+}

@@ -38,6 +38,8 @@ interface ImportJobData {
     extractionStatus: string;
     extractionConfidence: number | null;
   };
+  status?: string;
+  contactId?: string;
 }
 
 export async function importJob(
@@ -167,7 +169,6 @@ export async function importJob(
         location: finalJob.location,
         salary: formatSalaryString(finalJob.salaryMin, finalJob.salaryMax),
         notes: null,
-        status: 'WISHLIST',
         description: finalJob.description,
         employmentType: finalJob.employmentType,
         experienceMin: finalJob.experienceMin,
@@ -190,6 +191,8 @@ export async function importJob(
         extractionError,
         extractionConfidence,
         capturedAt: metadata.capturedAt ? new Date(metadata.capturedAt) : new Date(),
+        contactId: data.contactId || null,
+        status: (data.status as any) || 'WISHLIST',
       },
     });
   } catch (err: any) {
@@ -201,13 +204,14 @@ export async function importJob(
         company: metadata.pageTitle || 'Unknown',
         role: 'Untitled Position (Fallback Save)',
         jobUrl: metadata.sourceUrl || null,
-        status: 'WISHLIST',
         source: metadata.source,
         sourceUrl: metadata.sourceUrl,
         screenshotUrl,
         extractionStatus: 'NEEDS_REVIEW',
         extractionError: 'Failed to save rich data: ' + err.message,
         capturedAt: metadata.capturedAt ? new Date(metadata.capturedAt) : new Date(),
+        contactId: data.contactId || null,
+        status: (data.status as any) || 'WISHLIST',
       }
     });
   }

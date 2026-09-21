@@ -60,8 +60,15 @@ export const uploadFile = async (file: Express.Multer.File, folder: string): Pro
 
     console.log(`⚡ Saved file locally to ${localFilePath}`);
     
-    // Use BACKEND_URL if set, otherwise construct from PORT
-    const backendBase = env.BACKEND_URL || `http://localhost:${env.PORT || 4000}`;
+    // Use BACKEND_URL if set. If in production, try RAILWAY_PUBLIC_DOMAIN, otherwise fallback to localhost
+    let backendBase = env.BACKEND_URL;
+    if (!backendBase) {
+      if (env.NODE_ENV === 'production' && process.env.RAILWAY_PUBLIC_DOMAIN) {
+        backendBase = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+      } else {
+        backendBase = `http://localhost:${env.PORT || 4000}`;
+      }
+    }
     const fileUrl = `${backendBase}/uploads/${folder}/${uniqueFilename}`;
     
     console.log(`⚡ Generated file URL: ${fileUrl}`);

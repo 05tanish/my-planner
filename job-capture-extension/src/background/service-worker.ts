@@ -63,6 +63,8 @@ async function handleCaptureAndSave(payload: {
   tabId: number;
   url: string;
   title: string;
+  status?: string;
+  contactId?: string;
 }): Promise<any> {
   const { tabId, url, title } = payload;
 
@@ -117,6 +119,8 @@ async function handleCaptureAndSave(payload: {
     const importPayload: JobImportPayload = {
       job: extraction.data,
       metadata,
+      status: payload.status,
+      contactId: payload.contactId,
     };
 
     return await sendToBackend(importPayload);
@@ -157,6 +161,8 @@ async function handleCaptureAndSave(payload: {
     job: partialData,
     metadata,
     screenshot: screenshotDataUrl || undefined,
+    status: payload.status,
+    contactId: payload.contactId,
   };
 
   return await sendToBackend(importPayload);
@@ -177,6 +183,8 @@ async function sendToBackend(payload: JobImportPayload): Promise<any> {
       job: payload.job,
       metadata: payload.metadata,
       screenshot: payload.screenshot || undefined, // base64 data URL
+      status: payload.status,
+      contactId: payload.contactId,
     };
 
     const response = await fetch(`${backendUrl}/api/jobs/import`, {
@@ -288,6 +296,8 @@ async function sendToBackendDirect(payload: JobImportPayload): Promise<any> {
     job: payload.job,
     metadata: payload.metadata,
     screenshot: payload.screenshot || undefined,
+    status: payload.status,
+    contactId: payload.contactId,
   };
 
   const response = await fetch(`${backendUrl}/api/jobs/import`, {

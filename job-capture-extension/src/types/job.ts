@@ -41,6 +41,8 @@ export interface JobImportPayload {
   job: ExtractedJobData;
   metadata: CaptureMetadata;
   screenshot?: string; // base64 data URL
+  status?: string;
+  contactId?: string;
 }
 
 /** Backend response after import */

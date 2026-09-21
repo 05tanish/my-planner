@@ -37,6 +37,30 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     return true; // keep channel open for async
   }
 
+  if (message.type === 'EXTRACT_CONTACT') {
+    (async () => {
+      try {
+        const name = document.querySelector('h1.text-heading-xlarge')?.textContent?.trim() || 
+                     document.querySelector('.text-heading-xlarge')?.textContent?.trim();
+        const role = document.querySelector('.text-body-medium')?.textContent?.trim();
+        const company = document.querySelector('.pv-text-details__right-panel .inline-show-more-text')?.textContent?.trim();
+        
+        sendResponse({
+          success: true,
+          data: {
+            name: name || '',
+            role: role || '',
+            company: company || ''
+          }
+        });
+      } catch (err: any) {
+        console.error('[DevOS] Contact Extraction error:', err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
   if (message.type === 'DETECT_PAGE') {
     const hostname = window.location.hostname.toLowerCase();
     let siteName = hostname.replace('www.', '');

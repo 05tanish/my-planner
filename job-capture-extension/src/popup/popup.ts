@@ -4,6 +4,7 @@ import type {
   CaptureStage,
   JobImportResponse,
 } from '../types/job.js';
+import { getContacts, createContact } from '../services/api.js';
 
 // ─── DOM Elements ───
 const $connectionStatus = document.getElementById('connectionStatus')!;
@@ -24,6 +25,19 @@ const $resultContent = document.getElementById('resultContent')!;
 const $queueSection = document.getElementById('queueSection')!;
 const $queueCount = document.getElementById('queueCount')!;
 const $syncNowBtn = document.getElementById('syncNowBtn')!;
+
+// Contact Elements
+const $contactSelect = document.getElementById('contactSelect') as HTMLSelectElement;
+const $contactCaptureView = document.getElementById('contactCaptureView')!;
+const $contactName = document.getElementById('contactName') as HTMLInputElement;
+const $contactRole = document.getElementById('contactRole') as HTMLInputElement;
+const $contactCompany = document.getElementById('contactCompany') as HTMLInputElement;
+const $contactUrl = document.getElementById('contactUrl') as HTMLInputElement;
+const $saveContactBtn = document.getElementById('saveContactBtn') as HTMLButtonElement;
+const $saveContactBtnText = document.getElementById('saveContactBtnText')!;
+const $saveContactBtnIcon = document.getElementById('saveContactBtnIcon')!;
+const $contactResultSection = document.getElementById('contactResultSection')!;
+const $contactResultContent = document.getElementById('contactResultContent')!;
 
 // Step elements
 const steps: Record<string, HTMLElement> = {
@@ -50,6 +64,7 @@ async function checkAuth(): Promise<void> {
 
   if (token) {
     showConnected();
+    await loadContacts();
     await detectPage();
   } else {
     showDisconnected();
@@ -139,6 +154,16 @@ async function detectPage(): Promise<void> {
     if (isJobPage) {
       showPageStatus('detected', '✓', 'Job page detected');
       $captureBtn.disabled = false;
+    } else if (hostname.includes('linkedin.com') && url.pathname.startsWith('/in/')) {
+      showPageStatus('detected', '✓', 'LinkedIn Profile detected');
+      $captureView.classList.add('hidden');
+      $contactCaptureView.classList.remove('hidden');
+      
+      // Auto-fill URL
+      $contactUrl.value = url.href.split('?')[0]; // clean url
+      
+      // Trigger extraction
+      await startContactExtraction(tab.id);
     } else {
       showPageStatus('not-detected', '⚠', 'May not be a job page');
       // Still allow capture — user knows best
@@ -180,10 +205,15 @@ async function startCapture(): Promise<void> {
 
     // Step 2+3+4+5+6: Send to service worker which orchestrates the full flow
     setStepState('extract', 'active');
+    
+    // Get user selections
+    const jobStatusEl = document.querySelector('input[name="jobStatus"]:checked') as HTMLInputElement;
+    const jobStatus = jobStatusEl ? jobStatusEl.value : 'WISHLIST';
+    const contactId = $contactSelect.value || undefined;
 
     const msg: ExtensionMessage = {
       type: 'CAPTURE_AND_SAVE',
-      payload: { tabId: tab.id, url: tab.url, title: tab.title },
+      payload: { tabId: tab.id, url: tab.url, title: tab.title, status: jobStatus, contactId },
     };
 
     const response: { success: boolean; result?: JobImportResponse; stage?: CaptureStage; error?: string } =
@@ -308,4 +338,104 @@ $syncNowBtn.addEventListener('click', async () => {
   const msg: ExtensionMessage = { type: 'GET_PENDING_QUEUE' };
   await chrome.runtime.sendMessage(msg);
   await checkPendingQueue();
+});
+
+// ─── Contacts ───
+async function loadContacts() {
+  try {
+    const res = await getContacts();
+    if (res.success && res.data) {
+      $contactSelect.innerHTML = '<option value="">-- None --</option>';
+      res.data.forEach((contact: any) => {
+        const option = document.createElement('option');
+        option.value = contact.id;
+        option.textContent = `${contact.name}${contact.company ? ` (${contact.company})` : ''}`;
+        $contactSelect.appendChild(option);
+      });
+    } else {
+      $contactSelect.innerHTML = '<option value="">Failed to load contacts</option>';
+    }
+  } catch (err) {
+    $contactSelect.innerHTML = '<option value="">Error loading contacts</option>';
+  }
+}
+
+async function startContactExtraction(tabId: number) {
+  try {
+    // Check if script is injected
+    let ready = false;
+    try {
+      await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+      ready = true;
+    } catch {
+      ready = false;
+    }
+
+    if (!ready) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['src/content/content.js'],
+      });
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const response = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_CONTACT' });
+    if (response && response.success) {
+      const data = response.data;
+      if (data.name) $contactName.value = data.name;
+      if (data.role) $contactRole.value = data.role;
+      if (data.company) $contactCompany.value = data.company;
+    }
+  } catch (err) {
+    console.warn('Contact extraction failed', err);
+  }
+}
+
+$saveContactBtn.addEventListener('click', async () => {
+  const name = $contactName.value.trim();
+  const role = $contactRole.value.trim();
+  const company = $contactCompany.value.trim();
+  const linkedinUrl = $contactUrl.value.trim();
+
+  if (!name) {
+    $contactName.style.borderColor = 'var(--error)';
+    setTimeout(() => { $contactName.style.borderColor = 'var(--border)'; }, 2000);
+    return;
+  }
+
+  $saveContactBtn.disabled = true;
+  $saveContactBtnText.textContent = 'Saving...';
+  $saveContactBtnIcon.innerHTML = '<span class="spinning">⏳</span>';
+  
+  $contactResultSection.classList.add('hidden');
+
+  try {
+    const res = await createContact({ name, role, company, linkedinUrl, source: 'LinkedIn' });
+    
+    $contactResultSection.classList.remove('hidden');
+    if (res.success) {
+      $contactResultContent.innerHTML = `
+        <div class="result-success">
+          <div class="result-title">✓ Contact Saved!</div>
+          <div class="result-detail">${name} at ${company || 'Unknown Company'}</div>
+        </div>
+      `;
+      // Update contacts list in background
+      loadContacts();
+    } else {
+      throw new Error(res.error || 'Failed to save contact');
+    }
+  } catch (err: any) {
+    $contactResultSection.classList.remove('hidden');
+    $contactResultContent.innerHTML = `
+      <div class="result-error">
+        <div class="result-title">❌ Failed to save</div>
+        <div class="result-detail">${err.message || 'Unknown error'}</div>
+      </div>
+    `;
+  } finally {
+    $saveContactBtn.disabled = false;
+    $saveContactBtnText.textContent = 'Save Contact';
+    $saveContactBtnIcon.textContent = '👤';
+  }
 });

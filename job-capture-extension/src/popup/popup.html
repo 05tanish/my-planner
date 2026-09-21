@@ -46,6 +46,28 @@
         </div>
       </div>
 
+      <!-- Capture Options -->
+      <div class="section" id="captureOptions">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <div class="section-label">Job Status <span style="color:var(--error)">*</span></div>
+          <div class="radio-group" style="display:flex; gap:16px; font-size:13px;">
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="radio" name="jobStatus" value="WISHLIST" checked /> Wishlist
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="radio" name="jobStatus" value="APPLIED" /> Applied
+            </label>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div class="section-label">Link Contact (Optional)</div>
+          <select id="contactSelect" class="form-select" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); font-family:var(--font); outline:none;">
+            <option value="">Loading contacts...</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Capture Button -->
       <button id="captureBtn" class="btn btn-primary btn-full" disabled>
         <span id="captureBtnIcon">📥</span>
@@ -92,6 +114,42 @@
         <span>📤</span>
         <span id="queueCount">0</span> pending sync
         <button id="syncNowBtn" class="btn btn-sm btn-ghost">Sync Now</button>
+      </div>
+    </div>
+
+    <!-- Contact Capture View -->
+    <div id="contactCaptureView" class="view hidden">
+      <div class="section">
+        <div class="section-label">Extract Contact</div>
+        <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
+          Found a LinkedIn profile. Please review the extracted details:
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-size:11px; color:var(--text-muted);">Name <span style="color:var(--error)">*</span></label>
+          <input type="text" id="contactName" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-size:11px; color:var(--text-muted);">Role</label>
+          <input type="text" id="contactRole" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-size:11px; color:var(--text-muted);">Company</label>
+          <input type="text" id="contactCompany" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size:11px; color:var(--text-muted);">LinkedIn URL</label>
+          <input type="text" id="contactUrl" class="form-input" style="width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius-sm);" />
+        </div>
+
+        <button id="saveContactBtn" class="btn btn-primary btn-full">
+          <span id="saveContactBtnIcon">👤</span>
+          <span id="saveContactBtnText">Save Contact</span>
+        </button>
+      </div>
+      
+      <div id="contactResultSection" class="section hidden">
+        <div id="contactResultContent"></div>
       </div>
     </div>
   </div>
