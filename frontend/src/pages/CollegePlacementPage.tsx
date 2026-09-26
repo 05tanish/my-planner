@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Plus, Search, Calendar, MapPin, Trash2, Edit2, Loader2,
-  Upload, X, Eye, Download, Briefcase, DollarSign, FileText,
-  Award, Phone, Mail, User
+  Eye, Download, Briefcase, DollarSign, FileText
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { CollegePlacement, PlacementStatus, CollegePlacementStats } from '../types';
