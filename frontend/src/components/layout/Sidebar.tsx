@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Code2, FileText,
   BookMarked, Briefcase, Library,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  FolderKanban, Trophy, ListOrdered, Lightbulb, ScrollText, UserPlus
+  FolderKanban, Trophy, ListOrdered, Lightbulb, ScrollText, UserPlus, GraduationCap
 } from 'lucide-react';
 import { Github } from '../ui/BrandIcons';
 import { cn } from '../../lib/utils';
@@ -22,6 +22,7 @@ const NAV = [
 
   { label: 'Resources',       path: '/resources',  Icon: BookMarked },
   { label: 'Job Tracker',     path: '/jobs',       Icon: Briefcase },
+  { label: 'College Placement', path: '/college-placement', Icon: GraduationCap },
   { label: 'Contacts',        path: '/contacts',   Icon: UserPlus },
   { label: 'Books',           path: '/books',      Icon: Library },
   { label: 'GitHub',          path: '/github',     Icon: Github },

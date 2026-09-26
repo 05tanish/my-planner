@@ -26,6 +26,7 @@ const HackathonsPage    = lazy(() => import('../pages/HackathonsPage'));
 const DsaConceptsPage  = lazy(() => import('../pages/DsaConceptsPage'));
 const LogsPage         = lazy(() => import('../pages/LogsPage'));
 const ContactsPage     = lazy(() => import('../pages/ContactsPage'));
+const CollegePlacementPage = lazy(() => import('../pages/CollegePlacementPage').then(m => ({ default: m.CollegePlacementPage })));
 
 function PageLoader() {
   return (
@@ -160,6 +161,9 @@ export function AppRouter() {
         } />
         <Route path="/contacts" element={
           <Suspense fallback={<PageLoader />}><ContactsPage /></Suspense>
+        } />
+        <Route path="/college-placement" element={
+          <Suspense fallback={<PageLoader />}><CollegePlacementPage /></Suspense>
         } />
       </Route>
     </Routes>

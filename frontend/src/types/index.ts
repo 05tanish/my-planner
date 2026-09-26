@@ -243,6 +243,45 @@ export interface PlacementNote {
   updatedAt: string;
 }
 
+// ─── College Placement ────────────────────────────────────────────────────────
+export type PlacementStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW_SCHEDULED' | 'INTERVIEW_COMPLETED' | 'OFFER_RECEIVED' | 'REJECTED' | 'ACCEPTED' | 'WITHDRAWN';
+
+export interface CollegePlacement {
+  id: string;
+  userId: string;
+  company: string;
+  role: string;
+  jobDescription?: string;
+  location?: string;
+  package?: string;
+  status: PlacementStatus;
+  applicationDate: string;
+  interviewDate?: string;
+  offerDate?: string;
+  resumeFileName?: string;
+  resumeFileUrl?: string;
+  resumePublicId?: string;
+  resumeFileSize?: number;
+  resumeMimeType?: string;
+  resumeUploadedAt?: string;
+  notes?: string;
+  rounds?: string[];
+  skills?: string[];
+  eligibilityCriteria?: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollegePlacementStats {
+  total: number;
+  byStatus: Record<string, number>;
+  withResume: number;
+  upcomingInterviews: number;
+}
+
 // ─── Books ────────────────────────────────────────────────────────────────────
 export type BookCategory = 'DSA' | 'BACKEND' | 'DEVOPS' | 'BLOCKCHAIN' | 'SYSTEM_DESIGN' | 'PRODUCTIVITY';
 export type ReadingStatus = 'WANT_TO_READ' | 'READING' | 'COMPLETED' | 'PAUSED';
