@@ -66,6 +66,7 @@ model User {
   priorities           Priority[]
   activityLogs         ActivityLog[]
   contacts             Contact[]
+  collegePlacements    CollegePlacement[]
 }
 
 model Session {
@@ -425,6 +426,62 @@ model Job {
   @@index([userId])
   @@index([sourceUrl])
   @@index([contactId])
+}
+
+// ─────────────────────────────────────────────
+// COLLEGE PLACEMENT
+// ─────────────────────────────────────────────
+
+enum PlacementStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  OFFER_RECEIVED
+  REJECTED
+  ACCEPTED
+  WITHDRAWN
+}
+
+model CollegePlacement {
+  id                  String           @id @default(cuid())
+  userId              String
+  company             String
+  role                String
+  jobDescription      String?
+  location            String?
+  package             String?
+  status              PlacementStatus  @default(APPLIED)
+  applicationDate     DateTime         @default(now())
+  interviewDate       DateTime?
+  offerDate           DateTime?
+  
+  // Resume Management
+  resumeFileName      String?
+  resumeFileUrl       String?          // Cloudinary URL
+  resumePublicId      String?          // Cloudinary public_id for deletion
+  resumeFileSize      Int?             // Size in bytes
+  resumeMimeType      String?          // e.g., "application/pdf"
+  resumeUploadedAt    DateTime?
+  
+  // Additional Details
+  notes               String?
+  rounds              String[]         // ["Aptitude", "Technical Round 1", "HR"]
+  skills              String[]
+  eligibilityCriteria String?
+  contactPerson       String?
+  contactEmail        String?
+  contactPhone        String?
+  
+  // Metadata
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([applicationDate])
 }
 
 // ─────────────────────────────────────────────

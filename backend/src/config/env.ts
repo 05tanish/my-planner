@@ -24,7 +24,12 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID:   z.string().optional(),
 
-  // Supabase Storage (optional — used for file uploads)
+  // Cloudinary (file storage)
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY:    z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+
+  // Supabase Storage (optional — LEGACY, being replaced by Cloudinary)
   SUPABASE_URL:            z.string().optional(),
   SUPABASE_SERVICE_KEY:    z.string().optional(),
   SUPABASE_STORAGE_BUCKET: z.string().optional().default('devos-files'),
