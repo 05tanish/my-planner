@@ -5,8 +5,12 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import { env } from './config/env';
+import { configureCloudinary } from './config/cloudinary';
 import { globalLimiter } from './middleware/rateLimit.middleware';
 import { errorHandler } from './middleware/error.middleware';
+
+// Configure Cloudinary on startup
+configureCloudinary();
 
 // Import Route Handlers
 import authRouter from './modules/auth/auth.routes';
@@ -30,6 +34,7 @@ import aiRouter from './modules/ai/ai.routes';
 import logsRouter from './modules/analytics/logs.routes';
 import contactsRouter from './modules/contacts/contacts.routes';
 import placementRouter from './modules/placement/placement.routes';
+import collegePlacementRouter from './modules/college-placement/college-placement.routes';
 
 const app = express();
 
@@ -124,6 +129,7 @@ app.use('/api/ai', aiRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/contacts', contactsRouter);
 app.use('/api/placement', placementRouter);
+app.use('/api/college-placement', collegePlacementRouter);
 
 // Global Error Handler
 app.use(errorHandler);
