@@ -103,7 +103,7 @@ export const uploadJobResume = async (userId: string, jobId: string, file: Expre
   }
 
   // Upload new resume file
-  const resumePath = await uploadFile(file, 'job-resumes');
+  const resumePath = await uploadFile(file, 'job-resumes', true);
 
   // Update job record
   return prisma.job.update({

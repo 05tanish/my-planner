@@ -19,7 +19,7 @@ if (supabase) {
   console.log('⚡ [Supabase Not Configured] Storage running in local fallback mode');
 }
 
-export const uploadFile = async (file: Express.Multer.File, folder: string): Promise<string> => {
+export const uploadFile = async (file: Express.Multer.File, folder: string, requireSupabase: boolean = false): Promise<string> => {
   const bucketName = env.SUPABASE_STORAGE_BUCKET;
   const fileExtension = file.originalname.split('.').pop();
   const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExtension}`;
@@ -45,8 +45,11 @@ export const uploadFile = async (file: Express.Multer.File, folder: string): Pro
 
       return publicUrlData.publicUrl;
     } catch (error: any) {
+      if (requireSupabase) throw new Error(`Supabase upload failed: ${error.message}`);
       console.warn('⚠️ Supabase Upload Error, falling back to local storage:', error.message || error);
     }
+  } else if (requireSupabase) {
+    throw new Error('Supabase is not configured, but is required for this upload.');
   }
 
   // Local Storage Fallback

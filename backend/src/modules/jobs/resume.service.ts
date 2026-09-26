@@ -10,7 +10,7 @@ export const listResumes = async (userId: string) => {
 };
 
 export const uploadResume = async (userId: string, file: Express.Multer.File, body: any) => {
-  const fileUrl = await uploadFile(file, 'resumes');
+  const fileUrl = await uploadFile(file, 'resumes', true);
 
   // If setting as default, unset all others first
   if (body.isDefault === 'true' || body.isDefault === true) {

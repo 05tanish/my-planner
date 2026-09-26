@@ -67,7 +67,7 @@ export const collegePlacementService = {
       // Handle file upload via Supabase/local storage
       if (file && file.buffer) {
         try {
-          const fileUrl = await uploadFile(file, 'resumes');
+          const fileUrl = await uploadFile(file, 'resumes', true);
           placementData.resumeFileName = file.originalname;
           placementData.resumeFileUrl = fileUrl;
           placementData.resumePublicId = fileUrl; // Store URL as ID for deletion
@@ -144,7 +144,7 @@ export const collegePlacementService = {
 
       // Upload new file via Supabase/local storage
       try {
-        const fileUrl = await uploadFile(file, 'resumes');
+        const fileUrl = await uploadFile(file, 'resumes', true);
         updateData.resumeFileName = file.originalname;
         updateData.resumeFileUrl = fileUrl;
         updateData.resumePublicId = fileUrl;
