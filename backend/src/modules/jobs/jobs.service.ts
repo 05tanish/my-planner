@@ -26,6 +26,7 @@ export const list = async (userId: string, q: any) => {
             relation: true,
           },
         },
+        resume: true,
       },
     }),
     prisma.job.count({ where }),
@@ -50,6 +51,7 @@ export const getOne = async (userId: string, id: string) => {
           relation: true,
         },
       },
+      resume: true,
     },
   });
   if (!job) throw new AppError('Job application not found.', 404);

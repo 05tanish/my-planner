@@ -160,6 +160,8 @@ export interface Job {
   resumePath?: string;
   resumeSize?: number;
   resumeUploadedAt?: string;
+  resumeId?: string;
+  resume?: { id: string; name: string; fileUrl: string; fileName: string; fileSize?: number; mimeType?: string; isDefault: boolean };
   // Job Capture Extension fields
   description?: string;
   employmentType?: string;

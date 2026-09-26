@@ -104,6 +104,7 @@ export function JobsPage() {
   const [salary, setSalary] = useState('');
   const [notes, setNotes] = useState('');
   const [contactId, setContactId] = useState<string>('');
+  const [resumeId, setResumeId] = useState<string>('');
 
   // Contacts list for linking
   const [contacts, setContacts] = useState<Array<{ id: string; name: string; company?: string; role?: string }>>([]);
@@ -142,6 +143,8 @@ export function JobsPage() {
     setSalary('');
     setNotes('');
     setContactId('');
+    const defaultResume = resumes.find(r => r.isDefault);
+    setResumeId(defaultResume ? defaultResume.id : '');
     setShowStatusPrompt(false);
     setIsOpen(true);
   };
@@ -166,6 +169,7 @@ export function JobsPage() {
     setSalary(j.salary || '');
     setNotes(j.notes || '');
     setContactId((j as any).contactId || '');
+    setResumeId(j.resumeId || '');
     setIsOpen(true);
   };
 
@@ -184,6 +188,7 @@ export function JobsPage() {
       salary: salary || undefined,
       notes: notes || undefined,
       contactId: contactId || undefined,
+      resumeId: resumeId || null,
     };
 
     try {
@@ -570,6 +575,40 @@ export function JobsPage() {
                               </button>
                             </div>
                           </div>
+                        ) : job.resume ? (
+                          <div className="bg-secondary/40 border border-primary/20 rounded p-2 flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span className="text-[10px] font-semibold text-foreground truncate max-w-[130px]" title={job.resume.name}>
+                                  📚 {job.resume.name}
+                                </span>
+                              </div>
+                              {job.resume.fileSize && (
+                                <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                                  {(job.resume.fileSize / 1024).toFixed(0)} KB
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-end gap-1 pt-0.5">
+                              <button
+                                onClick={() => openPdfPreview(job.resume!.fileUrl, job.resume!.name)}
+                                className="px-1.5 py-0.5 text-[9px] font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded flex items-center gap-1 transition-colors"
+                                title="Preview PDF online"
+                              >
+                                <Eye className="w-2.5 h-2.5" /> Preview
+                              </button>
+                              <a
+                                href={job.resume!.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-1.5 py-0.5 text-[9px] font-medium bg-secondary text-foreground hover:bg-secondary/80 rounded flex items-center gap-1 transition-colors"
+                                title="Download Resume PDF"
+                              >
+                                <Download className="w-2.5 h-2.5" /> Download
+                              </a>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             onClick={() => triggerReplaceJobResume(job.id)}
@@ -703,6 +742,22 @@ export function JobsPage() {
                 rows={3}
                 className="w-full p-3 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none"
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Select from General Resume Vault (Optional)</label>
+              <select
+                value={resumeId}
+                onChange={e => setResumeId(e.target.value)}
+                className="w-full h-10 px-3 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none"
+              >
+                <option value="">No general resume selected</option>
+                {resumes.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} {r.isDefault ? '(Default)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* ─── PER-JOB RESUME ATTACHMENT IN MODAL ─── */}
